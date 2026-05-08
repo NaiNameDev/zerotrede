@@ -25,3 +25,30 @@ dynamic_vec3 project_vertices(mesh* m, mat4 view, mat4 proj, mat4 toscr) {
 
 	return v;
 }
+void calculate_normals(mesh* m) {
+	
+}
+mesh create_from_obj(char* path) {
+	mesh ret;
+	ret.position = nvec3(0,0,0);
+	ret.rotation = nvec3(0,0,0);
+	ret.scale = nvec3(0,0,0);
+	FILE* f = fopen(path, "r");
+	
+	if (f == NULL) {
+		printf("CANT FIND FILE %s ABORTING!\n", path);
+		exit(-1);
+	}
+
+	dynamic_char obj = malloc_char(0);
+	int i = 0, c;
+	while ((c = fgetc(f)) != EOF) {
+		put_char(&obj, c);
+	}
+	put_char(&obj, '\0');
+
+	
+
+	dealloc_char(&obj);
+	fclose(f);
+}

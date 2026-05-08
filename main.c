@@ -11,6 +11,7 @@
 
 #include "mymath.c"
 DEFINE_DYNAMYC_TYPE(vec3)
+DEFINE_DYNAMYC_TYPE(char)
 DEFINE_DYNAMYC_TYPE(uint8_t);
 #include "rasterizer.c"
 #include "mesh.c"
@@ -73,12 +74,13 @@ int main() {
 		SDL_RenderClear(renderer);
 		if (SDL_PollEvent(&e) && e.type == SDL_QUIT) break;
 
-		ttg.position.x = sin(SDL_GetTicks()/1000.0f) * 4.0f;
-		ttg.position.z = cos(SDL_GetTicks()/1000.0f) * 4.0f - 6;
-		ttg.rotation.z = cos(SDL_GetTicks()/1000.0f) * 4.0f - 6;
+		ttg.position.x = sin(SDL_GetTicks() / 1000.0f) * 4.0f;
+		ttg.position.z = cos(SDL_GetTicks() / 1000.0f) * 4.0f - 6;
 		
 		dynamic_vec3 p = project_vertices(&ttg, view, proj, to_screen);
-		draw_trg(p.arr[0], p.arr[1], p.arr[2], c1, c2, c3, sr);
+		for (int i = 0; i < p.size; i+=3) {
+			draw_trg(p.arr[i], p.arr[i+1], p.arr[i+2], c1, c2, c3, sr);
+		}
 		dealloc_vec3(&p);
 
 
