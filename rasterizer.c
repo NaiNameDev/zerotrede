@@ -8,14 +8,14 @@ void set_pixel(dynamic_uint8_t* pix, unsigned int x, unsigned int y, int w, int 
 }
 
 // DEALLOC IT AFTER USE!!!!!!!
-dynamic_vec3 get_line(vec3 p1, vec3 p2) {
+dynamic_vec4 get_line(vec4 p1, vec4 p2) {
 	int x1, x2, y1, y2;
 	x1 = floor(p1.x);
 	x2 = floor(p2.x);
 	y1 = floor(p1.y);
 	y2 = floor(p2.y);
 
-	dynamic_vec3 ret = malloc_vec3(0);
+	dynamic_vec4 ret = malloc_vec4(0);
 	int s = 0;
 	
 	int dx = abs(x1 - x2);
@@ -25,7 +25,7 @@ dynamic_vec3 get_line(vec3 p1, vec3 p2) {
 	int er = dx - dy;
 
 	while (1) {
-		put_vec3(&ret, nvec3(x1, y1, 0.0f));
+		put_vec4(&ret, nvec4(x1, y1, 0.0f, 0.0f));
 		
 		if (x1 == x2 && y1 == y2) return ret;
 		
@@ -44,8 +44,8 @@ dynamic_vec3 get_line(vec3 p1, vec3 p2) {
 
 struct tc_args {
 	dynamic_uint8_t* pix;
-	dynamic_vec3* mmx;
-	dynamic_vec3* mmx_color;
+	dynamic_vec4* mmx;
+	dynamic_vec4* mmx_color;
 	int w;
 	int h;
 };
@@ -70,7 +70,7 @@ void* thread_coloring(void* arg) {
 		int len = smin - min;
 		if (len == 1) return NULL;
 		for (long j = 0; j < len; j++) {
-			vec3 c = lerpv(a.mmx_color->arr[minidx], a.mmx_color->arr[sminidx], (float)j / (float)len);
+			vec4 c = lerpv(a.mmx_color->arr[minidx], a.mmx_color->arr[sminidx], (float)j / (float)len);
 			set_pixel(a.pix, a.mmx->arr[minidx].x, a.mmx->arr[minidx].y + j, a.w, a.h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
 		}
 	}
@@ -78,57 +78,52 @@ void* thread_coloring(void* arg) {
 		int len = min - smin;
 		if (len == 1) return NULL;
 		for (long j = 0; j < len; j++) {
-			vec3 c = lerpv(a.mmx_color->arr[sminidx], a.mmx_color->arr[minidx], (float)j / (float)len);
+			vec4 c = lerpv(a.mmx_color->arr[sminidx], a.mmx_color->arr[minidx], (float)j / (float)len);
 			set_pixel(a.pix, a.mmx->arr[sminidx].x, a.mmx->arr[sminidx].y + j, a.w, a.h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
 		}
 	}
 	free(arg);
 }
 
-void draw_trg(vec3 a, vec3 b, vec3 c, vec3 ca, vec3 cb, vec3 cc, SDL_Surface* sr) {
-	SDL_LockSurface(sr);
-	dynamic_uint8_t pix = malloc_uint8_t(sr->h * sr->pitch);
-	fill_zeros_uint8_t(&pix);
-
-
+void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr, dynamic_uint8_t pix) {
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
 	size_t s = maxx - minx + 1;
 
-	dynamic_vec3 minmax_x[s]; //static array of dynamic array of vec3
-	dynamic_vec3 minmax_x_color[s];
+	dynamic_vec4 minmax_x[s]; //static array of dynamic array of vec4
+	dynamic_vec4 minmax_x_color[s];
 	for (int i = 0; i < s; i++) {
-		minmax_x[i] = malloc_vec3(0);
-		minmax_x_color[i] = malloc_vec3(0);
+		minmax_x[i] = malloc_vec4(0);
+		minmax_x_color[i] = malloc_vec4(0);
 	}
-	dynamic_vec3 lab = get_line(a,b);
-	dynamic_vec3 lbc = get_line(b,c);
-	dynamic_vec3 lca = get_line(c,a);
+	dynamic_vec4 lab = get_line(a,b);
+	dynamic_vec4 lbc = get_line(b,c);
+	dynamic_vec4 lca = get_line(c,a);
 	
 	for (size_t i = 0; i < lab.size; i++) {
 		int idx = (int)lab.arr[i].x;
-		put_vec3(&minmax_x[idx - minx], lab.arr[i]);
+		put_vec4(&minmax_x[idx - minx], lab.arr[i]);
 
-		vec3 c = lerpv(ca, cb, (float)i / (float)lab.size);
-		put_vec3(&minmax_x_color[idx - minx], c);
+		vec4 c = lerpv(ca, cb, (float)i / (float)lab.size);
+		put_vec4(&minmax_x_color[idx - minx], c);
 
 		set_pixel(&pix, floor(lab.arr[i].x), floor(lab.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
 	}
 	for (size_t i = 0; i < lbc.size; i++) {
 		int idx = (int)lbc.arr[i].x;
-		put_vec3(&minmax_x[idx - minx], lbc.arr[i]);
+		put_vec4(&minmax_x[idx - minx], lbc.arr[i]);
 		
-		vec3 c = lerpv(cb, cc, (float)i / (float)lbc.size);
-		put_vec3(&minmax_x_color[idx - minx], c);
+		vec4 c = lerpv(cb, cc, (float)i / (float)lbc.size);
+		put_vec4(&minmax_x_color[idx - minx], c);
 
 		set_pixel(&pix, floor(lbc.arr[i].x), floor(lbc.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
 	}
 	for (size_t i = 0; i < lca.size; i++) {
 		int idx = (int)lca.arr[i].x;
-		put_vec3(&minmax_x[idx - minx], lca.arr[i]);
+		put_vec4(&minmax_x[idx - minx], lca.arr[i]);
 		
-		vec3 c = lerpv(cc, ca, (float)i / (float)lca.size);
-		put_vec3(&minmax_x_color[idx - minx], c);
+		vec4 c = lerpv(cc, ca, (float)i / (float)lca.size);
+		put_vec4(&minmax_x_color[idx - minx], c);
 		
 		set_pixel(&pix, floor(lca.arr[i].x), floor(lca.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
 	}
@@ -138,14 +133,11 @@ void draw_trg(vec3 a, vec3 b, vec3 c, vec3 ca, vec3 cb, vec3 cc, SDL_Surface* sr
 		thread_coloring((void*)a);
 	}
 
-	dealloc_vec3(&lab);
-	dealloc_vec3(&lbc);
-	dealloc_vec3(&lca);
+	dealloc_vec4(&lab);
+	dealloc_vec4(&lbc);
+	dealloc_vec4(&lca);
 	for (int i = 0; i < s; i++) {
-		dealloc_vec3(&minmax_x[i]);
-		dealloc_vec3(&minmax_x_color[i]);
+		dealloc_vec4(&minmax_x[i]);
+		dealloc_vec4(&minmax_x_color[i]);
 	}
-	memcpy(sr->pixels, pix.arr, sr->h * sr->pitch);
-	dealloc_uint8_t(&pix);
-	SDL_UnlockSurface(sr);
 }

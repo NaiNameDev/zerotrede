@@ -17,6 +17,10 @@ void dealloc_##TYPE(dynamic_##TYPE* d) {\
 	free(d->arr);\
 	d->arr = NULL;\
 }\
+void clear_##TYPE(dynamic_##TYPE* d) {\
+	dealloc_##TYPE(d);\
+	*d = malloc_##TYPE(0);\
+}\
 \
 void fill_zeros_##TYPE(dynamic_##TYPE* arr) {\
 	memset(arr->arr, 0, arr->size * sizeof(TYPE));\

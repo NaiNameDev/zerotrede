@@ -7,24 +7,21 @@
 #include "dynamic.c"
 
 #define WIDTH 640
-#define HEIGHT 480
+#define HEIGHT 640
 
 #include "mymath.c"
-DEFINE_DYNAMYC_TYPE(vec3)
+DEFINE_DYNAMYC_TYPE(vec4)
 DEFINE_DYNAMYC_TYPE(char)
+DEFINE_DYNAMYC_TYPE(float)
 DEFINE_DYNAMYC_TYPE(uint8_t);
 #include "rasterizer.c"
 #include "mesh.c"
 
 int main() {
-	vec3 t1 = nvec3(0.0f, 1.0f, 0.0f);
-	vec3 t2 = nvec3(1.0f, -1.0f, 0.0f);
-	vec3 t3 = nvec3(-1.0f, -1.0f, 0.0f);
+	vec4 t1 = nvec4(0.0f, 1.0f, 0.0f, 1.0f);
+	vec4 t2 = nvec4(1.0f, -1.0f, 0.0f, 1.0f);
+	vec4 t3 = nvec4(-1.0f, -1.0f, 0.0f, 1.0f);
 	
-	vec3 c1 = nvec3(1.0f, 0.0f, 0.0f);
-	vec3 c2 = nvec3(0.0f, 1.0f, 0.0f);
-	vec3 c3 = nvec3(0.0f, 0.0f, 1.0f);
-
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 		return 1;
@@ -59,30 +56,42 @@ int main() {
 	mat4 proj = projection_mat4(WIDTH/HEIGHT, deg2rad(90.0f), 100.0f, 0.1f);
 	mat4 view = nmat4();
 
-	dynamic_vec3 v = malloc_vec3(3);
+	dynamic_vec4 v = malloc_vec4(3);
+	dynamic_vec4 n = malloc_vec4(0);
 	v.arr[0] = t1;
 	v.arr[1] = t2;
 	v.arr[2] = t3;
-	mesh ttg = nmesh(v, v, nvec3(0,0,-2.0f), nvec3(0,0,0), nvec3(1,1,1));
-	
+	mesh ttg = nmesh(v, n, nvec4(0,0,-2.0f,1), nvec4(0,0,0,1), nvec4(1,1,1,1));
+	mesh a = create_mesh_from_obj("test_teto.obj");
+	a.position.z = -3.0f;
+	a.position.y = 2.5f;
+	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
+	a.rotation.x = deg2rad(180.0f);
+
 	while (1) {
 		uint32_t msec = SDL_GetTicks() - st;
-		//if(msec > 0) printf("fps: %f\n", 1000.0 / (double) msec);
+		if(msec > 0) printf("fps: %f\n", 1000.0 / (double) msec);
 		st = SDL_GetTicks();
 
 		SDL_SetRenderDrawColor(renderer,0,0,0,255);
 		SDL_RenderClear(renderer);
 		if (SDL_PollEvent(&e) && e.type == SDL_QUIT) break;
-
-		ttg.position.x = sin(SDL_GetTicks() / 1000.0f) * 4.0f;
-		ttg.position.z = cos(SDL_GetTicks() / 1000.0f) * 4.0f - 6;
 		
-		dynamic_vec3 p = project_vertices(&ttg, view, proj, to_screen);
-		for (int i = 0; i < p.size; i+=3) {
-			draw_trg(p.arr[i], p.arr[i+1], p.arr[i+2], c1, c2, c3, sr);
-		}
-		dealloc_vec3(&p);
+		a.rotation.y = st / 1000.0f;
 
+		SDL_LockSurface(sr);
+		dynamic_uint8_t pix = malloc_uint8_t(sr->h * sr->pitch);
+		fill_zeros_uint8_t(&pix);
+
+		//a.rotation.x = st / 1000.0f;
+		//a.rotation.z = st / 1000.0f;
+
+		draw(a, view, proj, to_screen, sr, pix);
+
+		memcpy(sr->pixels, pix.arr, sr->h * sr->pitch);
+		dealloc_uint8_t(&pix);
+		SDL_UnlockSurface(sr);
+		
 
 		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, sr);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -90,7 +99,7 @@ int main() {
 		SDL_DestroyTexture(texture);
 	}
 	
-	dealloc_vec3(&v);
+	free_mesh(&ttg);
 
 	SDL_FreeSurface(sr);
 	SDL_DestroyRenderer(renderer);
