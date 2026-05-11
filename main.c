@@ -8,6 +8,9 @@
 
 #define WIDTH 640
 #define HEIGHT 640
+#define NEAR 0.1f
+#define FAR 100.0f
+#define FOV 90.0f
 
 #include "mymath.c"
 DEFINE_DYNAMYC_TYPE(vec4)
@@ -18,10 +21,6 @@ DEFINE_DYNAMYC_TYPE(uint8_t);
 #include "mesh.c"
 
 int main() {
-	vec4 t1 = nvec4(0.0f, 1.0f, 0.0f, 1.0f);
-	vec4 t2 = nvec4(1.0f, -1.0f, 0.0f, 1.0f);
-	vec4 t3 = nvec4(-1.0f, -1.0f, 0.0f, 1.0f);
-	
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 		return 1;
@@ -53,21 +52,14 @@ int main() {
 	SDL_Surface* sr = SDL_CreateRGBSurface(0, WIDTH, HEIGHT, 32, 0, 0, 0, 0);
 	
 	mat4 to_screen = to_screen_mat4(WIDTH, HEIGHT);
-	mat4 proj = projection_mat4(WIDTH/HEIGHT, deg2rad(90.0f), 100.0f, 0.1f);
+	mat4 proj = projection_mat4(WIDTH/HEIGHT, deg2rad(FOV), FAR, NEAR);
 	mat4 view = nmat4();
 
-	dynamic_vec4 v = malloc_vec4(3);
-	dynamic_vec4 n = malloc_vec4(0);
-	v.arr[0] = t1;
-	v.arr[1] = t2;
-	v.arr[2] = t3;
-	mesh ttg = nmesh(v, n, nvec4(0,0,-2.0f,1), nvec4(0,0,0,1), nvec4(1,1,1,1));
 	mesh a = create_mesh_from_obj("test_teto.obj");
 	a.position.z = -3.0f;
 	a.position.y = 2.5f;
 	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	a.rotation.x = deg2rad(180.0f);
-
 	while (1) {
 		uint32_t msec = SDL_GetTicks() - st;
 		if(msec > 0) printf("fps: %f\n", 1000.0 / (double) msec);
@@ -76,20 +68,21 @@ int main() {
 		SDL_SetRenderDrawColor(renderer,0,0,0,255);
 		SDL_RenderClear(renderer);
 		if (SDL_PollEvent(&e) && e.type == SDL_QUIT) break;
-		
-		a.rotation.y = st / 1000.0f;
+	
 
 		SDL_LockSurface(sr);
 		dynamic_uint8_t pix = malloc_uint8_t(sr->h * sr->pitch);
+		dynamic_float depth = malloc_float(sr->h * sr->w);
 		fill_zeros_uint8_t(&pix);
+		fill_zeros_float(&depth);
 
-		//a.rotation.x = st / 1000.0f;
-		//a.rotation.z = st / 1000.0f;
+		a.rotation.y = st / 1000.0f;
 
-		draw(a, view, proj, to_screen, sr, pix);
+		draw(a, view, proj, to_screen, sr, pix, depth);
 
 		memcpy(sr->pixels, pix.arr, sr->h * sr->pitch);
 		dealloc_uint8_t(&pix);
+		dealloc_float(&depth);
 		SDL_UnlockSurface(sr);
 		
 
@@ -99,7 +92,7 @@ int main() {
 		SDL_DestroyTexture(texture);
 	}
 	
-	free_mesh(&ttg);
+	free_mesh(&a);
 
 	SDL_FreeSurface(sr);
 	SDL_DestroyRenderer(renderer);

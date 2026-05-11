@@ -13,13 +13,33 @@ vec4 nvec4(float x, float y, float z, float w) {
 vec4 lerpv(vec4 a, vec4 b, float t) {
 	return nvec4((1.0f - t) * a.x + t * b.x, (1.0f - t) * a.y + t * b.y, (1.0f - t) * a.z + t * b.z, 1.0f);
 }
+float lerp(float a, float b, float t) {
+	return (1.0f - t) * a + t * b;
+}
 vec4 scal_div_vec4(vec4 v, float s) {
-	v.x/=s; v.y/=s; v.z/=s; v.w/=s;
+	v.x/=s; v.y/=s; v.z/=s;
 	return v;
 }
 vec4 scal_mul_vec4(vec4 v, float s) {
-	v.x*=s; v.y*=s; v.z*=s; v.w*=s;
+	v.x*=s; v.y*=s; v.z*=s;
 	return v;
+}
+float dot3(vec4 v1, vec4 v2) {
+	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+float lenght3(vec4 v) {
+	return sqrt(dot3(v,v));
+}
+vec4 normalize3(vec4 v) {
+	float l = lenght3(v);
+	v.x /= l; v.y /= l; v.z /= l;
+	return v;
+}
+vec4 minus3(vec4 v1, vec4 v2) {
+	return (vec4){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w};
+}
+vec4 cross3(vec4 v1, vec4 v2) {
+	return (vec4){(v1.y * v2.z - v1.z * v2.y), (v1.x * v2.z - v1.z * v2.x), (v1.x * v2.y - v1.y * v2.x), v1.w};
 }
 void pvec4(vec4 v) {
 	printf("(%f, %f, %f, %f)\n",v.x,v.y,v.z,v.w);

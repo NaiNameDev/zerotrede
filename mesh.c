@@ -15,12 +15,11 @@ mesh nmesh(dynamic_vec4 v, dynamic_vec4 n, vec4 pos, vec4 rot, vec4 scl) {
 	return (mesh){v,n,pos,rot,scl, (material){nvec4(1.0f, 1.0f, 1.0f, 1.0f)}};
 }
 
-void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uint8_t pix) {
+void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uint8_t pix, dynamic_float depth) {
 	//backward matrix multiplication is not work here idk why
-	//rot * scale * position * view * projection * to_screen
-	mat4 fin = mulmat4(mulmat4(mulmat4(rotation_x_mat4(m.rotation.x), mulmat4(rotation_y_mat4(m.rotation.y), rotation_z_mat4(m.rotation.z))),
-					   mulmat4(scale_mat4(m.scale), translate_mat4(m.position))),
-					   mulmat4(view, mulmat4(proj, toscr)));
+	mat4 rot = mulmat4(rotation_x_mat4(m.rotation.x), mulmat4(rotation_y_mat4(m.rotation.y), rotation_z_mat4(m.rotation.z)));
+	mat4 mod = mulmat4(rot, mulmat4(scale_mat4(m.scale), translate_mat4(m.position)));
+	mat4 fin = mulmat4(mod, mulmat4(view, mulmat4(proj, toscr)));
 
 	dynamic_vec4 v = clone_vec4(&m.vertices);
 	for (size_t i = 0; i < v.size; i++) {
@@ -29,13 +28,12 @@ void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uin
 	}
 
 	for (int i = 0; i < v.size; i+=3) {
-		draw_trg(v.arr[i], v.arr[i+1], v.arr[i+2], m.mtl.color, m.mtl.color, m.mtl.color, sr, pix);
+		vec4 tn = cross3(minus3(m.vertices.arr[i+1], m.vertices.arr[i]), minus3(m.vertices.arr[i+2], m.vertices.arr[i]));
+		if (dot3(normalize3(mulmat4vec4(rot, tn)), nvec4(0,0,1,0)) >= 0.0f) {
+			draw_trg(v.arr[i], v.arr[i+1], v.arr[i+2], nvec4(1,0,0,1), nvec4(0,1,0,1), nvec4(0,0,1,1), sr, pix, depth);
+		}
 	}
 	dealloc_vec4(&v);
-}
-
-void calculate_normals(mesh* m) {
-	
 }
 mesh create_mesh_from_obj(char* path) {
 	mesh ret;
@@ -127,7 +125,7 @@ mesh create_mesh_from_obj(char* path) {
 								if (cnt == 0) {
 									put_vec4(&ret.vertices, nvec4(tv.arr[ib * 3 - 3], tv.arr[ib * 3 - 2], tv.arr[ib * 3 - 1] ,1.0f));
 								}
-								if (cnt == 2) {
+								if (cnt == 1) {
 									put_vec4(&ret.normales, nvec4(tn.arr[ib * 3 - 3], tn.arr[ib * 3 - 2], tn.arr[ib * 3 - 1], 1.0f));
 								}
 								

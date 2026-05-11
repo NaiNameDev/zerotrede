@@ -6,8 +6,18 @@ void set_pixel(dynamic_uint8_t* pix, unsigned int x, unsigned int y, int w, int 
 		pix->arr[4 * (y * w + x) + 3] = 255;
 	}
 }
+void set_depth_pixel(dynamic_float* depth, unsigned int x, unsigned int y, int w, int h, float c) {
+	if (x >= 0 && y >= 0 && x < w && y < h) {
+		depth->arr[(y * w + x)] = c;
+	}
+}
+float get_depth_pixel(dynamic_float* depth, unsigned int x, unsigned int y, int w, int h) {
+	if (x >= 0 && y >= 0 && x < w && y < h) {
+		return depth->arr[(y * w + x)];
+	}
+	return 0.0f;
+}
 
-// DEALLOC IT AFTER USE!!!!!!!
 dynamic_vec4 get_line(vec4 p1, vec4 p2) {
 	int x1, x2, y1, y2;
 	x1 = floor(p1.x);
@@ -42,102 +52,107 @@ dynamic_vec4 get_line(vec4 p1, vec4 p2) {
 	return ret;
 }
 
-struct tc_args {
-	dynamic_uint8_t* pix;
-	dynamic_vec4* mmx;
-	dynamic_vec4* mmx_color;
-	int w;
-	int h;
-};
-void* thread_coloring(void* arg) {
-	struct tc_args a = *(struct tc_args*)arg;
+void draw_trg_line_fill(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_vec4* mmx, dynamic_vec4* mmx_color, dynamic_float* mmx_depth, int w, int h, int minidx, int sminidx, int j, int len) {
+	int curx = mmx->arr[minidx].x;
+	float dp = lerp(mmx_depth->arr[minidx], mmx_depth->arr[sminidx], (float)j / (float)len);
+	
+	float curdp = get_depth_pixel(depth, curx, mmx->arr[minidx].y + j + 1, w, h);
+	if (curdp < NEAR) curdp = FAR;
+	
+	if (dp < curdp && dp > NEAR && dp < FAR) {
+		vec4 c = lerpv(mmx_color->arr[minidx], mmx_color->arr[sminidx], (float)j / (float)len);
+		
+		set_pixel(pix, curx, mmx->arr[minidx].y + j + 1, w, h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		set_depth_pixel(depth, curx, mmx->arr[minidx].y + j + 1, w, h, dp);
+	}
+}
 
+void draw_trg_line(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_vec4* mmx, dynamic_vec4* mmx_color, dynamic_float* mmx_depth, int w, int h) {
 	int minidx = 0;
 	int sminidx = 0;
 	int min = INT_MAX;
 	int smin = INT_MAX;
-	for (size_t j = 0; j < a.mmx->size - 1; j++) {
-		if (abs(a.mmx->arr[j].y - a.mmx->arr[j + 1].y) > 1) {
-			smin = a.mmx->arr[j].y;
-			min = a.mmx->arr[j + 1].y;
+	for (size_t j = 0; j < mmx->size - 1; j++) {
+		if (abs(mmx->arr[j].y - mmx->arr[j + 1].y) > 1) {
+			smin = mmx->arr[j].y;
+			min = mmx->arr[j + 1].y;
 			minidx = j+1;
 			sminidx = j;
 			break;
 		}
 	}
-	if (min == INT_MAX || smin == INT_MAX) return NULL;
+	if (min == INT_MAX || smin == INT_MAX) return;
 	if (smin > min) {
 		int len = smin - min;
-		if (len == 1) return NULL;
-		for (long j = 0; j < len; j++) {
-			vec4 c = lerpv(a.mmx_color->arr[minidx], a.mmx_color->arr[sminidx], (float)j / (float)len);
-			set_pixel(a.pix, a.mmx->arr[minidx].x, a.mmx->arr[minidx].y + j, a.w, a.h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		if (len == 1) return;
+		for (long j = 0; j < len - 1; j++) {
+			draw_trg_line_fill(pix, depth, mmx, mmx_color, mmx_depth, w, h, minidx, sminidx, j, len);
 		}
 	}
 	else {
 		int len = min - smin;
-		if (len == 1) return NULL;
-		for (long j = 0; j < len; j++) {
-			vec4 c = lerpv(a.mmx_color->arr[sminidx], a.mmx_color->arr[minidx], (float)j / (float)len);
-			set_pixel(a.pix, a.mmx->arr[sminidx].x, a.mmx->arr[sminidx].y + j, a.w, a.h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		if (len == 1) return;
+		for (long j = 0; j < len - 1; j++) {
+			draw_trg_line_fill(pix, depth, mmx, mmx_color, mmx_depth, w, h, sminidx, minidx, j, len);
 		}
 	}
-	free(arg);
 }
 
-void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr, dynamic_uint8_t pix) {
+void draw_edge_line(dynamic_vec4 line, dynamic_vec4* mmx, dynamic_vec4* mmx_color, dynamic_float* mmx_depth, vec4 c1, vec4 c2, float d1, float d2, int lerp_prg, dynamic_uint8_t* pix, dynamic_float* depth, int w, int h) {
+	put_vec4(mmx, line.arr[lerp_prg]);
+		
+	vec4 c = lerpv(c1, c2, (float)lerp_prg / (float) line.size);
+	put_vec4(mmx_color, c);
+	float dp = lerp(d1 * -1.0f, d2 * -1.0f, (float)lerp_prg / (float) line.size);
+	put_float(mmx_depth, dp);
+
+	float curdp = get_depth_pixel(depth, floor(line.arr[lerp_prg].x), floor(line.arr[lerp_prg].y), w, h);
+	if (curdp < NEAR) curdp = FAR;
+	
+	if (dp < curdp && dp > NEAR && dp < FAR) {
+		set_pixel(pix, floor(line.arr[lerp_prg].x), floor(line.arr[lerp_prg].y), w, h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		set_depth_pixel(depth, floor(line.arr[lerp_prg].x), floor(line.arr[lerp_prg].y), w, h, dp);
+	}
+}
+
+void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr, dynamic_uint8_t pix, dynamic_float depth) {
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
 	size_t s = maxx - minx + 1;
 
 	dynamic_vec4 minmax_x[s]; //static array of dynamic array of vec4
 	dynamic_vec4 minmax_x_color[s];
+	dynamic_float minmax_x_depth[s];
 	for (int i = 0; i < s; i++) {
 		minmax_x[i] = malloc_vec4(0);
 		minmax_x_color[i] = malloc_vec4(0);
+		minmax_x_depth[i] = malloc_float(0);
 	}
 	dynamic_vec4 lab = get_line(a,b);
 	dynamic_vec4 lbc = get_line(b,c);
 	dynamic_vec4 lca = get_line(c,a);
 	
 	for (size_t i = 0; i < lab.size; i++) {
-		int idx = (int)lab.arr[i].x;
-		put_vec4(&minmax_x[idx - minx], lab.arr[i]);
-
-		vec4 c = lerpv(ca, cb, (float)i / (float)lab.size);
-		put_vec4(&minmax_x_color[idx - minx], c);
-
-		set_pixel(&pix, floor(lab.arr[i].x), floor(lab.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		int idx = (int)lab.arr[i].x - minx;
+		draw_edge_line(lab, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], ca, cb, a.w, b.w, i, &pix, &depth, sr->w, sr->h);
 	}
 	for (size_t i = 0; i < lbc.size; i++) {
-		int idx = (int)lbc.arr[i].x;
-		put_vec4(&minmax_x[idx - minx], lbc.arr[i]);
-		
-		vec4 c = lerpv(cb, cc, (float)i / (float)lbc.size);
-		put_vec4(&minmax_x_color[idx - minx], c);
-
-		set_pixel(&pix, floor(lbc.arr[i].x), floor(lbc.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		int idx = (int)lbc.arr[i].x - minx;
+		draw_edge_line(lbc, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cb, cc, b.w, c.w, i, &pix, &depth, sr->w, sr->h);
 	}
 	for (size_t i = 0; i < lca.size; i++) {
-		int idx = (int)lca.arr[i].x;
-		put_vec4(&minmax_x[idx - minx], lca.arr[i]);
-		
-		vec4 c = lerpv(cc, ca, (float)i / (float)lca.size);
-		put_vec4(&minmax_x_color[idx - minx], c);
-		
-		set_pixel(&pix, floor(lca.arr[i].x), floor(lca.arr[i].y), sr->w, sr->h, floor(c.x * 255), floor(c.y * 255), floor(c.z * 255));
+		int idx = (int)lca.arr[i].x - minx;
+		draw_edge_line(lca, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cc, ca, c.w, a.w, i, &pix, &depth, sr->w, sr->h);
 	}
-
+	
 	for (size_t i = 0; i < s; i++) {
-		struct tc_args* a = malloc(sizeof(struct tc_args)); *a = (struct tc_args){&pix, &minmax_x[i], &minmax_x_color[i], sr->w, sr->h};
-		thread_coloring((void*)a);
+		draw_trg_line(&pix, &depth, &minmax_x[i], &minmax_x_color[i], &minmax_x_depth[i], sr->w, sr->h);
+		
+		dealloc_vec4(&minmax_x[i]);
+		dealloc_vec4(&minmax_x_color[i]);
+		dealloc_float(&minmax_x_depth[i]);
 	}
-
 	dealloc_vec4(&lab);
 	dealloc_vec4(&lbc);
 	dealloc_vec4(&lca);
-	for (int i = 0; i < s; i++) {
-		dealloc_vec4(&minmax_x[i]);
-		dealloc_vec4(&minmax_x_color[i]);
-	}
 }

@@ -1,5 +1,5 @@
 a.elf: main.c
-	gcc -O3 main.c -o a.elf -lm -lSDL2
+	gcc -g -O3 main.c -o a.elf -lm -lSDL2
 
 .PHONY = ct c
 
