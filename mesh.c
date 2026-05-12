@@ -27,10 +27,12 @@ void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uin
 		v.arr[i] = scal_div_vec4(v.arr[i], v.arr[i].w);
 	}
 
-	for (int i = 0; i < v.size; i+=3) {
-		vec4 tn = cross3(minus3(m.vertices.arr[i+1], m.vertices.arr[i]), minus3(m.vertices.arr[i+2], m.vertices.arr[i]));
-		if (dot3(normalize3(mulmat4vec4(rot, tn)), nvec4(0,0,1,0)) >= 0.0f) {
-			draw_trg(v.arr[i], v.arr[i+1], v.arr[i+2], nvec4(1,0,0,1), nvec4(0,1,0,1), nvec4(0,0,1,1), sr, pix, depth);
+	for (size_t i = 0; i < v.size; i+=3) {
+		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i]))));
+		if (dot >= 0.0f) {
+			dot = (dot + 1.0f) / 2.0f;
+			vec4 col = nvec4(dot, dot, dot, 1.0f);
+			draw_trg(v.arr[i], v.arr[i+1], v.arr[i+2], col, col, col, sr, pix, depth);
 		}
 	}
 	dealloc_vec4(&v);
@@ -118,14 +120,14 @@ mesh create_mesh_from_obj(char* path) {
 							
 							int cnt = 0;
 							for (size_t i = 0; i < word.size; i++) {
-								if (word.arr[i] != '/') {put_char(&buffer, word.arr[i]); continue;}
+								if (word.arr[i] != '/' && word.arr[i] != '\0') {put_char(&buffer, word.arr[i]); continue;}
 								
 								put_char(&buffer, '\0');
 								int ib = atoi(buffer.arr);
 								if (cnt == 0) {
 									put_vec4(&ret.vertices, nvec4(tv.arr[ib * 3 - 3], tv.arr[ib * 3 - 2], tv.arr[ib * 3 - 1] ,1.0f));
 								}
-								if (cnt == 1) {
+								if (cnt == 2) {
 									put_vec4(&ret.normales, nvec4(tn.arr[ib * 3 - 3], tn.arr[ib * 3 - 2], tn.arr[ib * 3 - 1], 1.0f));
 								}
 								
