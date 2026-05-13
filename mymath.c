@@ -38,6 +38,9 @@ vec4 normalize3(vec4 v) {
 vec4 minus3(vec4 v1, vec4 v2) {
 	return (vec4){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w};
 }
+vec4 plus3(vec4 v1, vec4 v2) {
+	return (vec4){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w};
+}
 vec4 cross3(vec4 v1, vec4 v2) {
 	return (vec4){(v1.y * v2.z - v1.z * v2.y), (v1.x * v2.z - v1.z * v2.x), (v1.x * v2.y - v1.y * v2.x), v1.w};
 }
@@ -151,6 +154,24 @@ mat4 translate_mat4(vec4 p) {
 	ret.arr[1][3] = p.y;
 	ret.arr[2][3] = p.z;
 	
+	return ret;
+}
+mat4 look_at_mat4(vec4 left, vec4 up, vec4 forward, vec4 position) {
+	mat4 ret = nmat4();
+	
+	ret.arr[0][0] = left.x;
+	ret.arr[1][0] = left.y;
+	ret.arr[2][0] = left.z;
+	ret.arr[0][1] = up.x;
+	ret.arr[1][1] = up.y;
+	ret.arr[2][1] = up.z;
+	ret.arr[0][2] = forward.x;
+	ret.arr[1][2] = forward.y;
+	ret.arr[2][2] = forward.z;
+	ret.arr[0][3] = position.x;
+	ret.arr[1][3] = position.y;
+	ret.arr[2][3] = position.z;
+
 	return ret;
 }
 mat4 projection_mat4(float a, float fov, float far, float near) {

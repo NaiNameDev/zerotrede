@@ -53,7 +53,6 @@ int main() {
 	
 	mat4 to_screen = to_screen_mat4(WIDTH, HEIGHT);
 	mat4 proj = projection_mat4(WIDTH/HEIGHT, deg2rad(FOV), FAR, NEAR);
-	mat4 view = nmat4();
 
 	mesh a = create_mesh_from_obj("test_teto.obj");
 	a.position.z = -3.0f;
@@ -61,6 +60,7 @@ int main() {
 	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	a.rotation.x = deg2rad(180.0f);
 	
+	vec4 cam_pos = nvec4(0,0,0,1);
 	while (1) {
 		uint32_t msec = SDL_GetTicks() - st;
 		if(msec > 0) printf("fps: %f\n", 1000.0 / (double) msec);
@@ -79,7 +79,10 @@ int main() {
 
 		//a.rotation.x = st / 1000.0f;
 		a.rotation.y = st / 2000.0f;
-		//a.rotation.z = st / 3000.0f;
+		//mat4 r = rotation_y_mat4(st/1000.0f);
+		//cam_pos.y = cos(st / 1000.0f);
+		//mat4 view = look_at_mat4(mulmat4vec4(r, nvec4(1,0,0,1)), mulmat4vec4(r, nvec4(0,1,0,1)), mulmat4vec4(r, nvec4(0,0,-1,1)), cam_pos);
+		mat4 view = nmat4();
 
 		draw(a, view, proj, to_screen, sr, pix, depth);
 

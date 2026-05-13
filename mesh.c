@@ -31,7 +31,7 @@ void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uin
 		v.arr[i-3] = mulmat4vec4(fin, v.arr[i-3]);
 		v.arr[i-3] = scal_div_vec4(v.arr[i-3], v.arr[i-3].w);
 		
-		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-3]))));
+		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(view.arr[0][3], view.arr[1][3], view.arr[2][3], 1.0f), mulmat4vec4(mod, m.vertices.arr[i-3]))));
 		if (dot >= 0.0f) {
 			dot = (dot + 1.0f) / 2.0f;
 			vec4 col = nvec4(dot, dot, dot, 1.0f);
