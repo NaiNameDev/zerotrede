@@ -22,17 +22,20 @@ void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uin
 	mat4 fin = mulmat4(mod, mulmat4(view, mulmat4(proj, toscr)));
 
 	dynamic_vec4 v = clone_vec4(&m.vertices);
-	for (size_t i = 0; i < v.size; i++) {
-		v.arr[i] = mulmat4vec4(fin, v.arr[i]);
-		v.arr[i] = scal_div_vec4(v.arr[i], v.arr[i].w);
-	}
-
-	for (size_t i = 0; i < v.size; i+=3) {
-		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i]))));
+	// i dont know why v.size+3 this is stoopid its whould be just v.size
+	for (size_t i = 3; i < v.size+3; i+=3) {
+		v.arr[i-1] = mulmat4vec4(fin, v.arr[i-1]);
+		v.arr[i-1] = scal_div_vec4(v.arr[i-1], v.arr[i-1].w);
+		v.arr[i-2] = mulmat4vec4(fin, v.arr[i-2]);
+		v.arr[i-2] = scal_div_vec4(v.arr[i-2], v.arr[i-2].w);
+		v.arr[i-3] = mulmat4vec4(fin, v.arr[i-3]);
+		v.arr[i-3] = scal_div_vec4(v.arr[i-3], v.arr[i-3].w);
+		
+		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-3]))));
 		if (dot >= 0.0f) {
 			dot = (dot + 1.0f) / 2.0f;
 			vec4 col = nvec4(dot, dot, dot, 1.0f);
-			draw_trg(v.arr[i], v.arr[i+1], v.arr[i+2], col, col, col, sr, pix, depth);
+			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, sr, pix, depth);
 		}
 	}
 	dealloc_vec4(&v);

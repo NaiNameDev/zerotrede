@@ -60,6 +60,7 @@ int main() {
 	a.position.y = 2.5f;
 	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	a.rotation.x = deg2rad(180.0f);
+	
 	while (1) {
 		uint32_t msec = SDL_GetTicks() - st;
 		if(msec > 0) printf("fps: %f\n", 1000.0 / (double) msec);
@@ -76,7 +77,9 @@ int main() {
 		fill_zeros_uint8_t(&pix);
 		fill_zeros_float(&depth);
 
-		a.rotation.y = st / 1000.0f;
+		//a.rotation.x = st / 1000.0f;
+		a.rotation.y = st / 2000.0f;
+		//a.rotation.z = st / 3000.0f;
 
 		draw(a, view, proj, to_screen, sr, pix, depth);
 

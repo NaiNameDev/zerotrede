@@ -116,6 +116,13 @@ void draw_edge_line(dynamic_vec4 line, dynamic_vec4* mmx, dynamic_vec4* mmx_colo
 }
 
 void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr, dynamic_uint8_t pix, dynamic_float depth) {
+	if (a.x < 0 && b.x < 0 && c.x < 0) return;
+	if (a.x > sr->w && b.x > sr->w && c.x > sr->w) return;
+	if (a.y < 0 && b.y < 0 && c.y < 0) return;
+	if (a.y > sr->h && b.y > sr->h && c.y > sr->h) return;
+	if (-a.w > FAR  && -b.w > FAR  && -c.w > FAR)  return;
+	if (-a.w < NEAR && -b.w < NEAR && -c.w < NEAR) return;
+
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
 	size_t s = maxx - minx + 1;
