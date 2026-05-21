@@ -15,15 +15,19 @@ mesh nmesh(dynamic_vec4 v, dynamic_vec4 n, vec4 pos, vec4 rot, vec4 scl) {
 	return (mesh){v,n,pos,rot,scl, (material){nvec4(1.0f, 1.0f, 1.0f, 1.0f)}};
 }
 
-void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uint8_t pix, dynamic_float depth) {
-	//backward matrix multiplication is not work here idk why
+void draw(mesh m, camera viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dynamic_float depth) {
+	mat4 view = get_camera_view(viewer);
 	mat4 rot = mulmat4(rotation_x_mat4(m.rotation.x), mulmat4(rotation_y_mat4(m.rotation.y), rotation_z_mat4(m.rotation.z)));
-	mat4 mod = mulmat4(rot, mulmat4(scale_mat4(m.scale), translate_mat4(m.position)));
+	mat4 scale = scale_mat4(m.scale);
+	mat4 mod = mulmat4(rot, mulmat4(scale, translate_mat4(m.position)));
 	mat4 fin = mulmat4(mod, mulmat4(view, mulmat4(proj, toscr)));
 
 	dynamic_vec4 v = clone_vec4(&m.vertices);
-	// i dont know why v.size+3 this is stoopid its whould be just v.size
 	for (size_t i = 3; i < v.size+3; i+=3) {
+		//vec4 n = normalize3(mulmat4vec4(rot, m.normales.arr[i-3]));
+		//vec4 d = normalize3(minus3(viewer.position, mulmat4vec4(mod, v.arr[i-3])));
+		//float dot = dot3(n, d);
+		//if (dot >= 0.0f) {
 		v.arr[i-1] = mulmat4vec4(fin, v.arr[i-1]);
 		v.arr[i-1] = scal_div_vec4(v.arr[i-1], v.arr[i-1].w);
 		v.arr[i-2] = mulmat4vec4(fin, v.arr[i-2]);
@@ -31,11 +35,19 @@ void draw(mesh m, mat4 view, mat4 proj, mat4 toscr, SDL_Surface* sr, dynamic_uin
 		v.arr[i-3] = mulmat4vec4(fin, v.arr[i-3]);
 		v.arr[i-3] = scal_div_vec4(v.arr[i-3], v.arr[i-3].w);
 		
-		float dot = dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(view.arr[0][3], view.arr[1][3], view.arr[2][3], 1.0f), mulmat4vec4(mod, m.vertices.arr[i-3]))));
-		if (dot >= 0.0f) {
-			dot = (dot + 1.0f) / 2.0f;
-			vec4 col = nvec4(dot, dot, dot, 1.0f);
-			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, sr, pix, depth);
+		vec4 n = normalize3(cross3(minus3(v.arr[i-2], v.arr[i-1]), minus3(v.arr[i-3], v.arr[i-1])));
+		if (n.z >= 0.0f) {
+			if (v.arr[i-3].x > WIDTH  && v.arr[i-2].x > WIDTH  && v.arr[i-1].x > WIDTH)  continue;
+			if (v.arr[i-3].y > HEIGHT && v.arr[i-2].y > HEIGHT && v.arr[i-1].y > HEIGHT) continue;
+			if (v.arr[i-3].x < 0 && v.arr[i-2].x < 0 && v.arr[i-1].x < 0) continue;
+			if (v.arr[i-3].y < 0 && v.arr[i-2].y < 0 && v.arr[i-1].y < 0) continue;
+			if (-v.arr[i-3].w > FAR  && -v.arr[i-2].w > FAR  && -v.arr[i-1].w > FAR)  continue;
+			if (-v.arr[i-3].w < NEAR && -v.arr[i-2].w < NEAR && -v.arr[i-1].w < NEAR) continue;
+			
+			// light source in 0,0,0
+			float l = (dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-3])))) + 1.0f) / 2.0f;
+			vec4 col = nvec4(l, l, l, 1.0f);
+			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, pix, depth);
 		}
 	}
 	dealloc_vec4(&v);

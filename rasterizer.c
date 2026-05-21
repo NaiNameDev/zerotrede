@@ -115,17 +115,11 @@ void draw_edge_line(dynamic_vec4 line, dynamic_vec4* mmx, dynamic_vec4* mmx_colo
 	}
 }
 
-void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr, dynamic_uint8_t pix, dynamic_float depth) {
-	if (a.x < 0 && b.x < 0 && c.x < 0) return;
-	if (a.x > sr->w && b.x > sr->w && c.x > sr->w) return;
-	if (a.y < 0 && b.y < 0 && c.y < 0) return;
-	if (a.y > sr->h && b.y > sr->h && c.y > sr->h) return;
-	if (-a.w > FAR  && -b.w > FAR  && -c.w > FAR)  return;
-	if (-a.w < NEAR && -b.w < NEAR && -c.w < NEAR) return;
-
+void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
 	size_t s = maxx - minx + 1;
+	if (s > WIDTH + HEIGHT) return;
 
 	dynamic_vec4 minmax_x[s]; //static array of dynamic array of vec4
 	dynamic_vec4 minmax_x_color[s];
@@ -141,19 +135,19 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, SDL_Surface* sr
 	
 	for (size_t i = 0; i < lab.size; i++) {
 		int idx = (int)lab.arr[i].x - minx;
-		draw_edge_line(lab, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], ca, cb, a.w, b.w, i, &pix, &depth, sr->w, sr->h);
+		draw_edge_line(lab, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], ca, cb, a.w, b.w, i, &pix, &depth, WIDTH, HEIGHT);
 	}
 	for (size_t i = 0; i < lbc.size; i++) {
 		int idx = (int)lbc.arr[i].x - minx;
-		draw_edge_line(lbc, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cb, cc, b.w, c.w, i, &pix, &depth, sr->w, sr->h);
+		draw_edge_line(lbc, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cb, cc, b.w, c.w, i, &pix, &depth, WIDTH, HEIGHT);
 	}
 	for (size_t i = 0; i < lca.size; i++) {
 		int idx = (int)lca.arr[i].x - minx;
-		draw_edge_line(lca, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cc, ca, c.w, a.w, i, &pix, &depth, sr->w, sr->h);
+		draw_edge_line(lca, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], cc, ca, c.w, a.w, i, &pix, &depth, WIDTH, HEIGHT);
 	}
 	
 	for (size_t i = 0; i < s; i++) {
-		draw_trg_line(&pix, &depth, &minmax_x[i], &minmax_x_color[i], &minmax_x_depth[i], sr->w, sr->h);
+		draw_trg_line(&pix, &depth, &minmax_x[i], &minmax_x_color[i], &minmax_x_depth[i], WIDTH, HEIGHT);
 		
 		dealloc_vec4(&minmax_x[i]);
 		dealloc_vec4(&minmax_x_color[i]);
