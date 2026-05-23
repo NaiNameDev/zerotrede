@@ -10,7 +10,7 @@
 
 #define WIDTH 1280.0f
 #define HEIGHT 1280.0f
-#define NEAR 0.5f
+#define NEAR 1.0f
 #define FAR 100.0f
 #define FOV 90.0f
 
@@ -47,6 +47,7 @@ int main() {
 
 	mesh a = create_mesh_from_obj("test_teto.obj");
 	a.position.z = 3.0f;
+	//a.position.x = -1.0f;
 	a.position.y = -2.5f;
 	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	
@@ -70,11 +71,13 @@ int main() {
 		if (is_key_pressed(window, GLFW_KEY_A)) mc.position.x -= delta * 3.0f;
 		if (is_key_pressed(window, GLFW_KEY_LEFT_SHIFT)) mc.position.y += delta * 3.0f;
 		if (is_key_pressed(window, GLFW_KEY_SPACE)) mc.position.y -= delta * 3.0f;
+	/*	
 		
-		if (is_key_pressed(window, GLFW_KEY_LEFT)) mc.rotation.y -= delta;
-		if (is_key_pressed(window, GLFW_KEY_RIGHT)) mc.rotation.y += delta;
-		if (is_key_pressed(window, GLFW_KEY_DOWN)) mc.rotation.x -= delta;
-		if (is_key_pressed(window, GLFW_KEY_UP)) mc.rotation.x += delta;
+		if (is_key_pressed(window, GLFW_KEY_LEFT)) a.rotation.z -= delta;
+		if (is_key_pressed(window, GLFW_KEY_RIGHT)) a.rotation.z += delta;
+		if (is_key_pressed(window, GLFW_KEY_DOWN)) a.rotation.y -= delta;
+		if (is_key_pressed(window, GLFW_KEY_UP)) a.rotation.y += delta;
+	*/	
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		
@@ -84,8 +87,7 @@ int main() {
 		fill_zeros_float(&depth);
 		// draw zone
 		
-
-		a.rotation.y = curt;
+		a.rotation.y += delta;
 		draw(a, mc, proj, to_screen, pix, depth);
 
 

@@ -24,6 +24,9 @@ vec4 scal_mul_vec4(vec4 v, float s) {
 	v.x*=s; v.y*=s; v.z*=s;
 	return v;
 }
+vec4 mulvec4(vec4 v1, vec4 v2) {
+	return nvec4(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z, v1.w * v2.w);
+}
 float dot3(vec4 v1, vec4 v2) {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
@@ -43,6 +46,9 @@ vec4 plus3(vec4 v1, vec4 v2) {
 }
 vec4 cross3(vec4 v1, vec4 v2) {
 	return (vec4){(v1.y * v2.z - v1.z * v2.y), (v1.x * v2.z - v1.z * v2.x), (v1.x * v2.y - v1.y * v2.x), v1.w};
+}
+vec4 abs3(vec4 v) {
+	return nvec4(abs(v.x), abs(v.y), abs(v.z), v.w);
 }
 void pvec4(vec4 v) {
 	printf("(%f, %f, %f, %f)\n",v.x,v.y,v.z,v.w);

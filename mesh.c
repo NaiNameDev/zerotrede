@@ -37,17 +37,11 @@ void draw(mesh m, camera viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dyn
 		
 		vec4 n = normalize3(cross3(minus3(v.arr[i-2], v.arr[i-1]), minus3(v.arr[i-3], v.arr[i-1])));
 		if (n.z >= 0.0f) {
-			if (v.arr[i-3].x > WIDTH  && v.arr[i-2].x > WIDTH  && v.arr[i-1].x > WIDTH)  continue;
-			if (v.arr[i-3].y > HEIGHT && v.arr[i-2].y > HEIGHT && v.arr[i-1].y > HEIGHT) continue;
-			if (v.arr[i-3].x < 0 && v.arr[i-2].x < 0 && v.arr[i-1].x < 0) continue;
-			if (v.arr[i-3].y < 0 && v.arr[i-2].y < 0 && v.arr[i-1].y < 0) continue;
-			if (-v.arr[i-3].w > FAR  && -v.arr[i-2].w > FAR  && -v.arr[i-1].w > FAR)  continue;
-			if (-v.arr[i-3].w < NEAR && -v.arr[i-2].w < NEAR && -v.arr[i-1].w < NEAR) continue;
-			
 			// light source in 0,0,0
 			float l = (dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-3])))) + 1.0f) / 2.0f;
 			vec4 col = nvec4(l, l, l, 1.0f);
-			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, pix, depth);
+			
+			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], nvec4(0, 0, 1, 1.0f), nvec4(0, 1, 0, 1.0f), nvec4(1, 0, 0, 1.0f), pix, depth);
 		}
 	}
 	dealloc_vec4(&v);
