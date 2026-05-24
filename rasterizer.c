@@ -160,6 +160,18 @@ void slice_y_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint
 	draw_trg(a, tmp_1, c, ca, cb, cc, pix, depth);
 	draw_trg(a, tmp_2, tmp_1, ca, cb, cc, pix, depth);
 }
+void slice_w_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth, int w) {
+	vec4 tmp_1 = nvec4(c.y + ((w - c.w) * (b.y - c.y) / (b.w - c.w)), c.x + ((b.x - c.x) / (b.w - c.w))*(w - c.w), 0.0f, b.w);
+	vec4 tmp_2 = nvec4(a.y + ((w - a.w) * (b.y - a.y) / (b.w - a.w)), a.x + ((b.x - a.x) / (b.w - a.w))*(w - a.w), 0.0f, b.w);
+	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
+	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
+	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
+	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	//draw_trg(a, tmp_1, c, ca, bari_blend(ca, cb, cc, b1), cc, pix, depth);
+	//draw_trg(a, tmp_2, tmp_1, ca, bari_blend(ca, cb, cc, b2), bari_blend(ca, cb, cc, b1), pix, depth);
+	draw_trg(a, tmp_1, c, ca, cb, cc, pix, depth);
+	draw_trg(a, tmp_2, tmp_1, ca, cb, cc, pix, depth);
+}
 
 void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
 	int is_a_out = a.x > WIDTH || a.y > HEIGHT || a.x < 0 || a.y < 0 || -a.w > FAR || -a.w < NEAR;
@@ -169,31 +181,28 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 	if (is_a_out && is_b_out && is_c_out) return;
 	if (is_a_out || is_b_out || is_c_out) {
 		if(is_a_out && (!is_b_out && !is_c_out)) {
-			if (a.x < 0.0) slice_x_out(c, a, b, cc, ca, cb, pix, depth, 0);
-			else if (a.x > HEIGHT) slice_x_out(c, a, b, cc, ca, cb, pix, depth, HEIGHT);
-			
-			if (a.y < 0.0) slice_y_out(c, a, b, cc, ca, cb, pix, depth, 0);
-			else if (a.y > WIDTH) slice_y_out(c, a, b, cc, ca, cb, pix, depth, WIDTH);
-			
-			return;
+			if 		(a.x < 0.0) {slice_x_out(c, a, b, cc, ca, cb, pix, depth, 0); return;}
+			else if (a.x > HEIGHT) {slice_x_out(c, a, b, cc, ca, cb, pix, depth, HEIGHT); return;}
+			else if (a.y < 0.0) {slice_y_out(c, a, b, cc, ca, cb, pix, depth, 0); return;}
+			else if (a.y > WIDTH) {slice_y_out(c, a, b, cc, ca, cb, pix, depth, WIDTH); return;}
+			//else if (a.w < NEAR) {slice_w_out(c, a, b, cc, ca, cb, pix, depth, NEAR); return;}
+			//else if (a.w > FAR) {slice_w_out(c, a, b, cc, ca, cb, pix, depth, FAR); return;}
 		}
 		if(is_c_out && (!is_b_out && !is_a_out)) {
-			if (c.x < 0.0) slice_x_out(b, c, a, cb, cc, ca, pix, depth, 0);
-			else if (c.x > HEIGHT) slice_x_out(b, c, a, cb, cc, ca, pix, depth, HEIGHT);
-			
-			if (c.y < 0.0) slice_y_out(b, c, a, cb, cc, ca, pix, depth, 0);
-			else if (c.y > WIDTH) slice_y_out(b, c, a, cb, cc, ca, pix, depth, WIDTH);
-			
-			return;
+			if 		(c.x < 0.0) {slice_x_out(b, c, a, cb, cc, ca, pix, depth, 0); return;}
+			else if (c.x > HEIGHT) {slice_x_out(b, c, a, cb, cc, ca, pix, depth, HEIGHT); return;}
+			else if (c.y < 0.0) {slice_y_out(b, c, a, cb, cc, ca, pix, depth, 0); return;}
+			else if (c.y > WIDTH) {slice_y_out(b, c, a, cb, cc, ca, pix, depth, WIDTH); return;}
+			//else if (c.w < NEAR) {slice_w_out(b, c, a, cb, cc, ca, pix, depth, NEAR); return;}
+			//else if (c.w > FAR) {slice_w_out(b, c, a, cb, cc, ca, pix, depth, FAR); return;}
 		}
 		if(is_b_out && (!is_c_out && !is_a_out)) {
-			if (b.x < 0.0) slice_x_out(a, b, c, ca, cb, cc, pix, depth, 0);
-			else if (b.x > HEIGHT) slice_x_out(a, b, c, ca, cb, cc, pix, depth, HEIGHT);
-			
-			if (b.y < 0.0) slice_y_out(a, b, c, ca, cb, cc, pix, depth, 0);
-			else if (b.y > WIDTH) slice_y_out(a, b, c, ca, cb, cc, pix, depth, WIDTH);
-			
-			return;
+			if 		(b.x < 0.0) {slice_x_out(a, b, c, ca, cb, cc, pix, depth, 0); return;}
+			else if (b.x > HEIGHT) {slice_x_out(a, b, c, ca, cb, cc, pix, depth, HEIGHT); return;}
+			else if (b.y < 0.0) {slice_y_out(a, b, c, ca, cb, cc, pix, depth, 0); return;}
+			else if (b.y > WIDTH) {slice_y_out(a, b, c, ca, cb, cc, pix, depth, WIDTH); return;}
+			//else if (b.y < NEAR) {slice_w_out(a, b, c, ca, cb, cc, pix, depth, NEAR); return;}
+			//else if (b.y > FAR) {slice_w_out(a, b, c, ca, cb, cc, pix, depth, FAR); return;}
 		}
 	}
 	
