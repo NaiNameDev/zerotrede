@@ -314,11 +314,9 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 			return;
 		}
 	}
-	
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
 	size_t s = maxx - minx + 1;
-	if (s > WIDTH + HEIGHT) return;
 
 	dynamic_vec4 minmax_x[s];
 	dynamic_vec4 minmax_x_color[s];
@@ -331,7 +329,7 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 	dynamic_vec4 lab = get_line(a,b);
 	dynamic_vec4 lbc = get_line(b,c);
 	dynamic_vec4 lca = get_line(c,a);
-	
+
 	for (size_t i = 0; i < lab.size; i++) {
 		int idx = (int)lab.arr[i].x - minx;
 		draw_edge_line(lab, &minmax_x[idx], &minmax_x_color[idx], &minmax_x_depth[idx], ca, cb, a.w, b.w, i, &pix, &depth, WIDTH, HEIGHT);

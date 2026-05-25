@@ -17,23 +17,19 @@ mesh nmesh(dynamic_vec4 v, dynamic_vec4 n, vec4 pos, vec4 rot, vec4 scl) {
 
 void draw(mesh m, camera viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dynamic_float depth) {
 	mat4 view = get_camera_view(viewer);
-	mat4 rot = mulmat4(rotation_x_mat4(m.rotation.x), mulmat4(rotation_y_mat4(m.rotation.y), rotation_z_mat4(m.rotation.z)));
+	mat4 rot = mulmat4(rotation_z_mat4(m.rotation.z), mulmat4(rotation_y_mat4(m.rotation.y), rotation_x_mat4(m.rotation.x)));
 	mat4 scale = scale_mat4(m.scale);
 	mat4 mod = mulmat4(rot, mulmat4(scale, translate_mat4(m.position)));
 	mat4 fin = mulmat4(mod, mulmat4(view, mulmat4(proj, toscr)));
 
 	dynamic_vec4 v = clone_vec4(&m.vertices);
 	for (size_t i = 3; i < v.size+3; i+=3) {
-		//vec4 n = normalize3(mulmat4vec4(rot, m.normales.arr[i-3]));
-		//vec4 d = normalize3(minus3(viewer.position, mulmat4vec4(mod, v.arr[i-3])));
-		//float dot = dot3(n, d);
-		//if (dot >= 0.0f) {
 		v.arr[i-1] = mulmat4vec4(fin, v.arr[i-1]);
-		v.arr[i-1] = scal_div_vec4(v.arr[i-1], v.arr[i-1].w);
+		v.arr[i-1] = scal_div_vec4(v.arr[i-1], clampf(v.arr[i-1].w, -FAR, -NEAR));
 		v.arr[i-2] = mulmat4vec4(fin, v.arr[i-2]);
-		v.arr[i-2] = scal_div_vec4(v.arr[i-2], v.arr[i-2].w);
+		v.arr[i-2] = scal_div_vec4(v.arr[i-2], clampf(v.arr[i-2].w, -FAR, -NEAR));
 		v.arr[i-3] = mulmat4vec4(fin, v.arr[i-3]);
-		v.arr[i-3] = scal_div_vec4(v.arr[i-3], v.arr[i-3].w);
+		v.arr[i-3] = scal_div_vec4(v.arr[i-3], clampf(v.arr[i-3].w, -FAR, -NEAR));
 		
 		vec4 n = normalize3(cross3(minus3(v.arr[i-2], v.arr[i-1]), minus3(v.arr[i-3], v.arr[i-1])));
 		if (n.z >= 0.0f) {

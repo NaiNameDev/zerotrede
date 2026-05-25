@@ -5,18 +5,20 @@
 #include <limits.h>
 
 #include <GLFW/glfw3.h>
-
-#include "dynamic.c"
+//#define STB_IMAGE_IMPLEMENTATION
+//#include <stb/stb_image.h>
 
 #define WIDTH 1280.0f
-#define HEIGHT 1280.0f
-#define NEAR 0.5f
+#define HEIGHT 720.0f
+#define NEAR 0.01f
 #define FAR 100.0f
-#define FOV 90.0f
+#define FOV 70.0f
 
 int is_key_pressed(GLFWwindow* win, int key) {
 	return glfwGetKey(win, key) == GLFW_PRESS;
 }
+
+#include "dynamic.c"
 
 #include "mymath.c"
 #include "camera.c"
@@ -27,6 +29,15 @@ DEFINE_DYNAMYC_TYPE(uint8_t);
 // rasterizer_bari.c sometimes works better but its not common thing
 #include "rasterizer.c"
 #include "mesh.c"
+//#include "image_loader.c"
+
+int cursor_x = WIDTH/2;
+int cursor_y = HEIGHT/2;
+
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	cursor_x = xpos;
+	cursor_y = ypos;
+}
 
 int main() {
 	if (!glfwInit()) return -1;
@@ -35,6 +46,8 @@ int main() {
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyWorld", NULL, NULL);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (window == NULL) {
 		glfwTerminate();
 		return -1;
@@ -44,22 +57,27 @@ int main() {
 	mat4 to_screen = to_screen_mat4(WIDTH, HEIGHT);
 	mat4 proj = projection_mat4(HEIGHT/WIDTH, deg2rad(FOV), FAR, NEAR);
 
+	int lx = WIDTH/2;
+	int ly = HEIGHT/2;
 	camera mc = ncamera(nvec4(0,0,0,1), nvec4(0,0,0,1), nvec4(0,0,-1,1), nvec4(0,1,0,1));
 
-	mesh cube = create_mesh_from_obj("test_cube.obj");
+	mesh cube = create_mesh_from_obj("test_trg.obj");
 	cube.position.z = 3.0f;
+	cube.rotation.y = deg2rad(-90.0f);
 	mesh teto = create_mesh_from_obj("test_teto.obj");
 	teto.rotation.y = deg2rad(180.0f);
 	teto.position.z = 3.0f;
 	teto.position.y = -2.5f;
 	teto.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	
+	//image test_img = load_image("./test_img.png");
+
 	double lstt = glfwGetTime();
 	double max_fps = 0.0f;
 	double all_fps = 0.0f;
 	uint32_t frame_cnt = 0;
 	while (!glfwWindowShouldClose(window)) {
-        double curt = glfwGetTime();
+		double curt = glfwGetTime();
 		double delta = curt - lstt;
 		lstt = curt;
 		if (delta > 0.001f) {
@@ -68,17 +86,17 @@ int main() {
 			frame_cnt++;
 			all_fps += 1.0f/delta;
 		}
-		if (is_key_pressed(window, GLFW_KEY_W)) mc.position.z += delta * 3.0f;
-		if (is_key_pressed(window, GLFW_KEY_S)) mc.position.z -= delta * 3.0f;
-		if (is_key_pressed(window, GLFW_KEY_D)) mc.position.x += delta * 3.0f;
-		if (is_key_pressed(window, GLFW_KEY_A)) mc.position.x -= delta * 3.0f;
+		mc.rotation.x += (ly - cursor_y) * 0.001f;
+		mc.rotation.y -= (lx - cursor_x) * 0.001f;
+		lx = cursor_x;
+		ly = cursor_y;
+		mat4 r = mulmat4(rotation_z_mat4(-mc.rotation.z), mulmat4(rotation_y_mat4(-mc.rotation.y), rotation_x_mat4(-mc.rotation.x)));
+		if (is_key_pressed(window, GLFW_KEY_W)) mc.position = plus3(scal_mul_vec4(mulmat4vec4(r, mc.forward), delta * -3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_S)) mc.position = plus3(scal_mul_vec4(mulmat4vec4(r, mc.forward), delta * 3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_D)) mc.position = plus3(scal_mul_vec4(cross3(mc.up, normalize3(mulmat4vec4(r, mc.forward))), delta * -3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_A)) mc.position = plus3(scal_mul_vec4(cross3(mc.up, normalize3(mulmat4vec4(r, mc.forward))), delta * 3.0f), mc.position);
 		if (is_key_pressed(window, GLFW_KEY_LEFT_SHIFT)) mc.position.y += delta * 3.0f;
 		if (is_key_pressed(window, GLFW_KEY_SPACE)) mc.position.y -= delta * 3.0f;
-		
-		if (is_key_pressed(window, GLFW_KEY_LEFT)) mc.rotation.y -= delta;
-		if (is_key_pressed(window, GLFW_KEY_RIGHT)) mc.rotation.y += delta;
-		if (is_key_pressed(window, GLFW_KEY_DOWN)) mc.rotation.x -= delta;
-		if (is_key_pressed(window, GLFW_KEY_UP)) mc.rotation.x += delta;
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		
@@ -89,9 +107,9 @@ int main() {
 		// draw zone
 		
 
-		teto.rotation.y += delta;
-		draw(teto, mc, proj, to_screen, pix, depth);
-		//draw(cube, mc, proj, to_screen, pix, depth);
+		//teto.rotation.y += delta;
+		//draw(teto, mc, proj, to_screen, pix, depth);
+		draw(cube, mc, proj, to_screen, pix, depth);
 
 
 		//draw zone end

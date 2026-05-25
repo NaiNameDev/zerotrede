@@ -7,6 +7,10 @@ typedef struct {
 	float w;
 } vec4;
 
+float clampf(float n, float min, float max) {
+	return n > min ? (n < max ? n : max) : min;
+}
+
 vec4 nvec4(float x, float y, float z, float w) {
 	return (vec4){x,y,z,w};
 }
