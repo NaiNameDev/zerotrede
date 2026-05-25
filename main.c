@@ -10,7 +10,7 @@
 
 #define WIDTH 1280.0f
 #define HEIGHT 1280.0f
-#define NEAR 0.1f
+#define NEAR 0.5f
 #define FAR 100.0f
 #define FOV 90.0f
 
@@ -24,6 +24,7 @@ DEFINE_DYNAMYC_TYPE(vec4)
 DEFINE_DYNAMYC_TYPE(char)
 DEFINE_DYNAMYC_TYPE(float)
 DEFINE_DYNAMYC_TYPE(uint8_t);
+// rasterizer_bari.c sometimes works better but its not common thing
 #include "rasterizer.c"
 #include "mesh.c"
 
@@ -45,13 +46,13 @@ int main() {
 
 	camera mc = ncamera(nvec4(0,0,0,1), nvec4(0,0,0,1), nvec4(0,0,-1,1), nvec4(0,1,0,1));
 
-	mesh a = create_mesh_from_obj("test_teto.obj");
-	a.position.z = 3.0f;
-	//a.rotation.y = deg2rad(-90.0f);
-	//a.scale = nvec4(5,5,5,1.0f);
-	//a.position.x = -1.0f;
-	a.position.y = -2.5f;
-	a.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
+	mesh cube = create_mesh_from_obj("test_cube.obj");
+	cube.position.z = 3.0f;
+	mesh teto = create_mesh_from_obj("test_teto.obj");
+	teto.rotation.y = deg2rad(180.0f);
+	teto.position.z = 3.0f;
+	teto.position.y = -2.5f;
+	teto.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	
 	double lstt = glfwGetTime();
 	double max_fps = 0.0f;
@@ -74,11 +75,11 @@ int main() {
 		if (is_key_pressed(window, GLFW_KEY_LEFT_SHIFT)) mc.position.y += delta * 3.0f;
 		if (is_key_pressed(window, GLFW_KEY_SPACE)) mc.position.y -= delta * 3.0f;
 		
-		if (is_key_pressed(window, GLFW_KEY_LEFT)) a.rotation.z -= delta;
-		if (is_key_pressed(window, GLFW_KEY_RIGHT)) a.rotation.z += delta;
-		if (is_key_pressed(window, GLFW_KEY_DOWN)) a.rotation.y -= delta;
-		if (is_key_pressed(window, GLFW_KEY_UP)) a.rotation.y += delta;
-
+		if (is_key_pressed(window, GLFW_KEY_LEFT)) mc.rotation.y -= delta;
+		if (is_key_pressed(window, GLFW_KEY_RIGHT)) mc.rotation.y += delta;
+		if (is_key_pressed(window, GLFW_KEY_DOWN)) mc.rotation.x -= delta;
+		if (is_key_pressed(window, GLFW_KEY_UP)) mc.rotation.x += delta;
+		
 		glClear(GL_COLOR_BUFFER_BIT);
 		
 		dynamic_uint8_t pix = malloc_uint8_t(WIDTH * HEIGHT * 4);
@@ -87,8 +88,10 @@ int main() {
 		fill_zeros_float(&depth);
 		// draw zone
 		
-		
-		draw(a, mc, proj, to_screen, pix, depth);
+
+		teto.rotation.y += delta;
+		draw(teto, mc, proj, to_screen, pix, depth);
+		//draw(cube, mc, proj, to_screen, pix, depth);
 
 
 		//draw zone end
@@ -100,7 +103,8 @@ int main() {
 		dealloc_float(&depth);
 	}
 	
-	free_mesh(&a);
+	free_mesh(&cube);
+	free_mesh(&teto);
 
 	glfwDestroyWindow(window);
     glfwTerminate();

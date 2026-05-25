@@ -1,10 +1,10 @@
-a.elf: main.c
-	gcc -g -O3 main.c -o a.elf -lm -lglfw -lGL
-
 .PHONY = ct c
 
-ct: a.elf
+ctdbg: main.c
+	gcc -DDBG_CULLING_MODE=1 -O3 -funroll-loops -march=native main.c -o a.elf -lm -lglfw -lGL
 	./a.elf
 	rm a.elf
-c:
+ctrel: main.c
+	gcc -DDBG_CULLING_MODE=0 -O3 -funroll-loops -march=native main.c -o a.elf -lm -lglfw -lGL
+	./a.elf
 	rm a.elf
