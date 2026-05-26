@@ -3,9 +3,9 @@ typedef struct {
 	unsigned int width;
 	unsigned int height;
 	unsigned int channels;
-} image;
+} image_t;
 
-image load_image(char* path) {
+image_t load_image(char* path) {
     int width, height, channels;
     uint8_t *data = stbi_load(path, &width, &height, &channels, 4);
     
@@ -14,10 +14,10 @@ image load_image(char* path) {
 		exit(-1);
     }
 
-    return (image){data, width, height, channels};
+    return (image_t){data, width, height, channels};
 }
 
-void free_image(image* i) {
+void free_image(image_t* i) {
 	stbi_image_free(i->image);
 }
 

@@ -1,54 +1,62 @@
 typedef struct {
 	vec4 color;
-} material;
+} material_t;
 typedef struct {
-	dynamic_vec4 vertices;
-	dynamic_vec4 normales;
-	vec4 position;
-	vec4 rotation;
-	vec4 scale;
+	dynamic_vec3 vertices;
+	dynamic_vec3 normales;
+	dynamic_vec2 uvs;
+	vec3 position;
+	vec3 rotation;
+	vec3 scale;
 
-	material mtl;
-} mesh;
+	material_t mtl;
+} mesh_t;
 
-mesh nmesh(dynamic_vec4 v, dynamic_vec4 n, vec4 pos, vec4 rot, vec4 scl) {
-	return (mesh){v,n,pos,rot,scl, (material){nvec4(1.0f, 1.0f, 1.0f, 1.0f)}};
+mesh_t nmesh(dynamic_vec3 v, dynamic_vec3 n, dynamic_vec2 u, vec3 pos, vec3 rot, vec3 scl) {
+	return (mesh_t){v,n,u,pos,rot,scl, (material_t){nvec4(1.0f, 1.0f, 1.0f, 1.0f)}};
 }
 
-void draw(mesh m, camera viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dynamic_float depth) {
+void draw(mesh_t m, camera_t viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dynamic_float depth) {
 	mat4 view = get_camera_view(viewer);
 	mat4 rot = mulmat4(rotation_z_mat4(m.rotation.z), mulmat4(rotation_y_mat4(m.rotation.y), rotation_x_mat4(m.rotation.x)));
 	mat4 scale = scale_mat4(m.scale);
 	mat4 mod = mulmat4(rot, mulmat4(scale, translate_mat4(m.position)));
 	mat4 fin = mulmat4(mod, mulmat4(view, mulmat4(proj, toscr)));
 
-	dynamic_vec4 v = clone_vec4(&m.vertices);
+	dynamic_vec3 v = clone_vec3(&m.vertices);
 	for (size_t i = 3; i < v.size+3; i+=3) {
-		v.arr[i-1] = mulmat4vec4(fin, v.arr[i-1]);
-		v.arr[i-1] = scal_div_vec4(v.arr[i-1], clampf(v.arr[i-1].w, -FAR, -NEAR));
-		v.arr[i-2] = mulmat4vec4(fin, v.arr[i-2]);
-		v.arr[i-2] = scal_div_vec4(v.arr[i-2], clampf(v.arr[i-2].w, -FAR, -NEAR));
-		v.arr[i-3] = mulmat4vec4(fin, v.arr[i-3]);
-		v.arr[i-3] = scal_div_vec4(v.arr[i-3], clampf(v.arr[i-3].w, -FAR, -NEAR));
+		vec4 a = vec3tovec4(v.arr[i-1], 1.0f);
+		vec4 b = vec3tovec4(v.arr[i-2], 1.0f);
+		vec4 c = vec3tovec4(v.arr[i-3], 1.0f);
 		
-		vec4 n = normalize3(cross3(minus3(v.arr[i-2], v.arr[i-1]), minus3(v.arr[i-3], v.arr[i-1])));
+		a = mulmat4vec4(fin, a);
+		a = w_transformation(a);
+		b = mulmat4vec4(fin, b);
+		b = w_transformation(b);
+		c = mulmat4vec4(fin, c);
+		c = w_transformation(c);
+		
+		vec3 n = normalize3(cross3(minus3(vec4tovec3(b), vec4tovec3(a)), minus3(vec4tovec3(c), vec4tovec3(a))));
 		if (n.z >= 0.0f) {
+#if DBG_CULLING_MODE == 0
 			// light source in 0,0,0
-			float l = (dot3(mulmat4vec4(rot, m.normales.arr[i-1]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-1])))) + 1.0f) / 2.0f;
+			float l = (dot3(vec4tovec3(mulmat4vec4(rot, vec3tovec4(m.normales.arr[i-1], 1.0f))), normalize3(minus3(nvec3(0,0,0), vec4tovec3(mulmat4vec4(mod, vec3tovec4(m.vertices.arr[i-1], 1.0f)))))) + 1.0f) / 2.0f;
 			vec4 col = nvec4(l, l, l, 1.0f);
-			
-			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, pix, depth);
+			draw_trg(vec4tovec3(a), vec4tovec3(b), vec4tovec3(c), col, col, col, pix, depth);
+#else
+			draw_trg(vec4tovec3(a), vec4tovec3(b), vec4tovec3(c), nvec4(1.0f, 0.0f, 0.0f, 0.0f), nvec4(0.0f, 1.0f, 0.0f, 1.0f), nvec4(0.0f, 0.0f, 1.0f, 1.0f), pix, depth);
+#endif
 		}
 	}
-	dealloc_vec4(&v);
+	dealloc_vec3(&v);
 }
-mesh create_mesh_from_obj(char* path) {
-	mesh ret;
-	ret.vertices = malloc_vec4(0);
-	ret.normales = malloc_vec4(0);
-	ret.position = nvec4(0,0,0,1);
-	ret.rotation = nvec4(0,0,0,1);
-	ret.scale = nvec4(1,1,1,1);
+mesh_t create_mesh_from_obj(char* path) {
+	mesh_t ret;
+	ret.vertices = malloc_vec3(0);
+	ret.normales = malloc_vec3(0);
+	ret.position = nvec3(0,0,0);
+	ret.rotation = nvec3(0,0,0);
+	ret.scale = nvec3(1,1,1);
 	ret.mtl.color = nvec4(1,1,1,1);
 	
 	FILE* f = fopen(path, "r");
@@ -130,10 +138,10 @@ mesh create_mesh_from_obj(char* path) {
 								put_char(&buffer, '\0');
 								int ib = atoi(buffer.arr);
 								if (cnt == 0) {
-									put_vec4(&ret.vertices, nvec4(tv.arr[ib * 3 - 3], tv.arr[ib * 3 - 2], tv.arr[ib * 3 - 1] ,1.0f));
+									put_vec3(&ret.vertices, nvec3(tv.arr[ib * 3 - 3], tv.arr[ib * 3 - 2], tv.arr[ib * 3 - 1]));
 								}
 								if (cnt == 2) {
-									put_vec4(&ret.normales, nvec4(tn.arr[ib * 3 - 3], tn.arr[ib * 3 - 2], tn.arr[ib * 3 - 1], 1.0f));
+									put_vec3(&ret.normales, nvec3(tn.arr[ib * 3 - 3], tn.arr[ib * 3 - 2], tn.arr[ib * 3 - 1]));
 								}
 								
 								cnt++;
@@ -154,7 +162,7 @@ mesh create_mesh_from_obj(char* path) {
 	dealloc_float(&tn);
 	return ret;
 }
-void free_mesh(mesh* m) {
-	dealloc_vec4(&m->vertices);
-	dealloc_vec4(&m->normales);
+void free_mesh(mesh_t* m) {
+	dealloc_vec3(&m->vertices);
+	dealloc_vec3(&m->normales);
 }

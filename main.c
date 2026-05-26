@@ -5,8 +5,8 @@
 #include <limits.h>
 
 #include <GLFW/glfw3.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+//#define STB_IMAGE_IMPLEMENTATION
+//#include <stb/stb_image.h>
 
 #define WIDTH 1280.0f
 #define HEIGHT 720.0f
@@ -23,13 +23,14 @@ int is_key_pressed(GLFWwindow* win, int key) {
 #include "mymath.c"
 #include "camera.c"
 DEFINE_DYNAMYC_TYPE(vec4)
+DEFINE_DYNAMYC_TYPE(vec3)
+DEFINE_DYNAMYC_TYPE(vec2)
 DEFINE_DYNAMYC_TYPE(char)
 DEFINE_DYNAMYC_TYPE(float)
 DEFINE_DYNAMYC_TYPE(uint8_t);
-// rasterizer_bari.c sometimes works better but its not common thing
 #include "rasterizer.c"
 #include "mesh.c"
-#include "image_loader.c"
+//#include "image_loader.c"
 
 int cursor_x = WIDTH/2;
 int cursor_y = HEIGHT/2;
@@ -48,7 +49,7 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyWorld", NULL, NULL);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	stbi_set_flip_vertically_on_load(true);
+	//stbi_set_flip_vertically_on_load(true);
 	if (window == NULL) {
 		glfwTerminate();
 		return -1;
@@ -60,18 +61,18 @@ int main() {
 
 	int lx = WIDTH/2;
 	int ly = HEIGHT/2;
-	camera mc = ncamera(nvec4(0,0,0,1), nvec4(0,0,0,1), nvec4(0,0,-1,1), nvec4(0,1,0,1));
+	camera_t mc = ncamera(nvec3(0,0,0), nvec3(0,0,0), nvec3(0,0,-1), nvec3(0,1,0));
 
-	mesh cube = create_mesh_from_obj("test_trg.obj");
+	mesh_t cube = create_mesh_from_obj("test_trg.obj");
 	cube.position.z = 3.0f;
 	cube.rotation.y = deg2rad(-90.0f);
-	mesh teto = create_mesh_from_obj("test_teto.obj");
+	mesh_t teto = create_mesh_from_obj("test_teto.obj");
 	teto.rotation.y = deg2rad(180.0f);
 	teto.position.z = 3.0f;
 	teto.position.y = -2.5f;
-	teto.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
+	teto.scale = nvec3(0.05f, 0.05f, 0.05f);
 	
-	image test_img = load_image("./test_img.png");
+	//image_t test_img = load_image("./test_img.png");
 
 	double lstt = glfwGetTime();
 	double max_fps = 0.0f;
@@ -92,10 +93,10 @@ int main() {
 		lx = cursor_x;
 		ly = cursor_y;
 		mat4 r = mulmat4(rotation_z_mat4(-mc.rotation.z), mulmat4(rotation_y_mat4(-mc.rotation.y), rotation_x_mat4(-mc.rotation.x)));
-		if (is_key_pressed(window, GLFW_KEY_W)) mc.position = plus3(scal_mul_vec4(mulmat4vec4(r, mc.forward), delta * -3.0f), mc.position);
-		if (is_key_pressed(window, GLFW_KEY_S)) mc.position = plus3(scal_mul_vec4(mulmat4vec4(r, mc.forward), delta * 3.0f), mc.position);
-		if (is_key_pressed(window, GLFW_KEY_D)) mc.position = plus3(scal_mul_vec4(cross3(mc.up, normalize3(mulmat4vec4(r, mc.forward))), delta * -3.0f), mc.position);
-		if (is_key_pressed(window, GLFW_KEY_A)) mc.position = plus3(scal_mul_vec4(cross3(mc.up, normalize3(mulmat4vec4(r, mc.forward))), delta * 3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_W)) mc.position = plus3(scal_mul_vec3(mulmat4vec3(r, mc.forward), delta * -3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_S)) mc.position = plus3(scal_mul_vec3(mulmat4vec3(r, mc.forward), delta * 3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_D)) mc.position = plus3(scal_mul_vec3(cross3(mc.up, normalize3(mulmat4vec3(r, mc.forward))), delta * -3.0f), mc.position);
+		if (is_key_pressed(window, GLFW_KEY_A)) mc.position = plus3(scal_mul_vec3(cross3(mc.up, normalize3(mulmat4vec3(r, mc.forward))), delta * 3.0f), mc.position);
 		if (is_key_pressed(window, GLFW_KEY_LEFT_SHIFT)) mc.position.y += delta * 3.0f;
 		if (is_key_pressed(window, GLFW_KEY_SPACE)) mc.position.y -= delta * 3.0f;
 		
@@ -109,16 +110,8 @@ int main() {
 		
 
 		//teto.rotation.y += delta;
-		//draw(teto, mc, proj, to_screen, pix, depth);
+		draw(teto, mc, proj, to_screen, pix, depth);
 		//draw(cube, mc, proj, to_screen, pix, depth);
-		for (int i = 0; i < test_img.width; i++) {
-			for (int j = 0; j < test_img.height; j++) {
-				set_pixel(&pix, i, j, WIDTH, HEIGHT,
-						  test_img.image[4 * (j * test_img.width + i)],
-						  test_img.image[4 * (j * test_img.width + i) + 1],
-						  test_img.image[4 * (j * test_img.width + i) + 2]);
-			}
-		}
 
 
 		//draw zone end

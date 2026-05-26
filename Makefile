@@ -1,7 +1,7 @@
 BM = 0
 
 CC = gcc
-DFLGS = -DDBG_CULLING_MODE=1 -DBARI_MODE=$(BM) -std=gnu23 -O3 -Wall -Wextra
+DFLGS = -DDBG_CULLING_MODE=1 -DBARI_MODE=$(BM) -std=gnu23 -O3 -flto
 RFLGS = -DDBG_CULLING_MODE=0 -DBARI_MODE=$(BM) -std=gnu23 -Ofast -Wall -Wextra -fwhole-program -flto -freciprocal-math -fno-math-errno -ffinite-math-only -funsafe-math-optimizations -ffast-math -funroll-loops -march=native
 LIBS = -lm -lglfw -lGL
 
