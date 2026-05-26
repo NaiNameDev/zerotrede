@@ -10,9 +10,9 @@
 
 #define WIDTH 1280.0f
 #define HEIGHT 720.0f
-#define NEAR 0.01f
+#define NEAR 0.1f
 #define FAR 100.0f
-#define FOV 70.0f
+#define FOV 60.0f
 
 int is_key_pressed(GLFWwindow* win, int key) {
 	return glfwGetKey(win, key) == GLFW_PRESS;
@@ -108,8 +108,8 @@ int main() {
 		
 
 		//teto.rotation.y += delta;
-		//draw(teto, mc, proj, to_screen, pix, depth);
-		draw(cube, mc, proj, to_screen, pix, depth);
+		draw(teto, mc, proj, to_screen, pix, depth);
+		//draw(cube, mc, proj, to_screen, pix, depth);
 
 
 		//draw zone end

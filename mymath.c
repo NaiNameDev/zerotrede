@@ -52,7 +52,7 @@ vec4 cross3(vec4 v1, vec4 v2) {
 	return (vec4){(v1.y * v2.z - v1.z * v2.y), (v1.x * v2.z - v1.z * v2.x), (v1.x * v2.y - v1.y * v2.x), v1.w};
 }
 vec4 abs3(vec4 v) {
-	return nvec4(abs(v.x), abs(v.y), abs(v.z), v.w);
+	return nvec4(fabsf(v.x), fabsf(v.y), fabsf(v.z), v.w);
 }
 void pvec4(vec4 v) {
 	printf("(%f, %f, %f, %f)\n",v.x,v.y,v.z,v.w);

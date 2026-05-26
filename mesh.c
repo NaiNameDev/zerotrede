@@ -34,10 +34,10 @@ void draw(mesh m, camera viewer, mat4 proj, mat4 toscr, dynamic_uint8_t pix, dyn
 		vec4 n = normalize3(cross3(minus3(v.arr[i-2], v.arr[i-1]), minus3(v.arr[i-3], v.arr[i-1])));
 		if (n.z >= 0.0f) {
 			// light source in 0,0,0
-			float l = (dot3(mulmat4vec4(rot, m.normales.arr[i-3]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-3])))) + 1.0f) / 2.0f;
+			float l = (dot3(mulmat4vec4(rot, m.normales.arr[i-1]), normalize3(minus3(nvec4(0,0,0,1), mulmat4vec4(mod, m.vertices.arr[i-1])))) + 1.0f) / 2.0f;
 			vec4 col = nvec4(l, l, l, 1.0f);
 			
-			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], nvec4(0, 0, 1, 1.0f), nvec4(0, 1, 0, 1.0f), nvec4(1, 0, 0, 1.0f), pix, depth);
+			draw_trg(v.arr[i-3], v.arr[i-2], v.arr[i-1], col, col, col, pix, depth);
 		}
 	}
 	dealloc_vec4(&v);
@@ -58,7 +58,7 @@ mesh create_mesh_from_obj(char* path) {
 	}
 
 	dynamic_char obj = malloc_char(0);
-	int i = 0, c;
+	int c;
 	while ((c = fgetc(f)) != EOF) {
 		put_char(&obj, c);
 	}
@@ -74,7 +74,7 @@ mesh create_mesh_from_obj(char* path) {
 	//char key_words_mod[9] = "ofntvms#g";
 	dynamic_char word = malloc_char(0);
 
-	for(int i = 0; i < obj.size; i++) {
+	for(size_t i = 0; i < obj.size; i++) {
 		if (obj.arr[i] == ' ' || obj.arr[i] == '\n') {
 			if (word.size != 0) {
 				int skip = 0;

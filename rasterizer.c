@@ -1,18 +1,18 @@
-inline void set_pixel(dynamic_uint8_t* pix, unsigned int x, unsigned int y, int w, int h, int r, int g, int b) {
-	if (x >= 0 && y >= 0 && x < w && y < h) {
+inline void set_pixel(dynamic_uint8_t* pix, int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b) {
+	if (x < w && y < h) {
 		pix->arr[4 * (y * w + x)] = r;
 		pix->arr[4 * (y * w + x) + 1] = g;
 		pix->arr[4 * (y * w + x) + 2] = b;
 		pix->arr[4 * (y * w + x) + 3] = 255;
 	}
 }
-inline void set_depth_pixel(dynamic_float* depth, unsigned int x, unsigned int y, int w, int h, float c) {
-	if (x >= 0 && y >= 0 && x < w && y < h) {
+inline void set_depth_pixel(dynamic_float* depth, int x, int y, int w, int h, float c) {
+	if (x < w && y < h) {
 		depth->arr[(y * w + x)] = c;
 	}
 }
-inline float get_depth_pixel(dynamic_float* depth, unsigned int x, unsigned int y, int w, int h) {
-	if (x >= 0 && y >= 0 && x < w && y < h) {
+inline float get_depth_pixel(dynamic_float* depth, int x, int y, int w, int h) {
+	if (x < w && y < h) {
 		return depth->arr[(y * w + x)];
 	}
 	return 0.0f;
@@ -26,7 +26,6 @@ inline dynamic_vec4 get_line(vec4 p1, vec4 p2) {
 	y2 = floor(p2.y);
 
 	dynamic_vec4 ret = malloc_vec4(0);
-	int s = 0;
 	
 	int dx = abs(x1 - x2);
 	int dy = abs(y1 - y2);
@@ -69,6 +68,9 @@ inline vec4 bari_blend(vec4 c1, vec4 c2, vec4 c3, vec4 bari) {
 				 c1.y * bari.x + c2.y * bari.y + c3.y * bari.z,
 				 c1.z * bari.x + c2.z * bari.y + c3.z * bari.z, 1.0f);
 }
+inline float bari_blend_float(float a, float b, float c, vec4 bari) {
+	return a * bari.x + b * bari.y + c * bari.z;
+}
 
 inline void draw_direct_line(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_vec4* mmx, dynamic_vec4* mmx_color, dynamic_float* mmx_depth, int w, int h, int minidx, int sminidx, int j, int len) {
 	int curx = mmx->arr[minidx].x;
@@ -91,7 +93,7 @@ inline void fill_trg_inside(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_
 	int min = INT_MAX;
 	int smin = INT_MAX;
 	for (size_t j = 0; j < mmx->size - 1; j++) {
-		if (abs(mmx->arr[j].y - mmx->arr[j + 1].y) > 1) {
+		if (fabsf(mmx->arr[j].y - mmx->arr[j + 1].y) > 1) {
 			smin = mmx->arr[j].y;
 			min = mmx->arr[j + 1].y;
 			minidx = j+1;
@@ -224,7 +226,89 @@ inline void slice_w_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynam
 #define c_y_test_he c.y > HEIGHT
 #define c_y_test_ze c.y < 0
 
-void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
+int hard_edge_test(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
+	// pizdec
+	if (a_x_test_wi) {
+		if (b_x_test_wi) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, WIDTH); return 0;}
+		if (c_x_test_wi) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, WIDTH); return 0;}
+		slice_x_out(c, a, b, cc, ca, cb, pix, depth, WIDTH);
+		return 0;
+	}
+	if (b_x_test_wi) {
+		if (a_x_test_wi) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, WIDTH); return 0;}
+		if (c_x_test_wi) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, WIDTH); return 0;}
+		slice_x_out(a, b, c, ca, cb, cc, pix, depth, WIDTH);
+		return 0;
+	}
+	if (c_x_test_wi) {
+		if (a_x_test_wi) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, WIDTH); return 0;}
+		if (b_x_test_wi) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, WIDTH); return 0;}
+		slice_x_out(b, c, a, cb, cc, ca, pix, depth, WIDTH);
+		return 0;
+	}
+
+	if (a_x_test_ze) {
+		if (b_x_test_ze) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return 0;}
+		if (c_x_test_ze) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return 0;}
+		slice_x_out(c, a, b, cc, ca, cb, pix, depth, 0);
+		return 0;
+	}
+	if (b_x_test_ze) {
+		if (a_x_test_ze) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return 0;}
+		if (c_x_test_ze) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return 0;}
+		slice_x_out(a, b, c, ca, cb, cc, pix, depth, 0);
+		return 0;
+	}
+	if (c_x_test_ze) {
+		if (a_x_test_ze) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return 0;}
+		if (b_x_test_ze) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return 0;}
+		slice_x_out(b, c, a, cb, cc, ca, pix, depth, 0);
+		return 0;
+	}
+
+	if (a_y_test_he) {
+		if (b_y_test_he) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, HEIGHT); return 0;}
+		if (c_y_test_he) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, HEIGHT); return 0;}
+		slice_y_out(c, a, b, cc, ca, cb, pix, depth, HEIGHT);
+		return 0;
+	}
+	if (b_y_test_he) {
+		if (a_y_test_he) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, HEIGHT); return 0;}
+		if (c_y_test_he) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, HEIGHT); return 0;}
+		slice_y_out(a, b, c, ca, cb, cc, pix, depth, HEIGHT);
+		return 0;
+	}
+	if (c_y_test_he) {
+		if (a_y_test_he) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, HEIGHT); return 0;}
+		if (b_y_test_he) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, HEIGHT); return 0;}
+		slice_y_out(b, c, a, cb, cc, ca, pix, depth, HEIGHT);
+		return 0;
+	}
+
+	if (a_y_test_ze) {
+		if (b_y_test_ze) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return 0;}
+		if (c_y_test_ze) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return 0;}
+		slice_y_out(c, a, b, cc, ca, cb, pix, depth, 0);
+		return 0;
+	}
+	if (b_y_test_ze) {
+		if (a_y_test_ze) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return 0;}
+		if (c_y_test_ze) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return 0;}
+		slice_y_out(a, b, c, ca, cb, cc, pix, depth, 0);
+		return 0;
+	}
+	if (c_y_test_ze) {
+		if (a_y_test_ze) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return 0;}
+		if (b_y_test_ze) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return 0;}
+		slice_y_out(b, c, a, cb, cc, ca, pix, depth, 0);
+		return 0;
+	}
+	return 1;
+}
+
+// LERP BACKEND
+#if BARI_RASTERIZER == 0
+inline void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
 	if (-a.w > FAR  && -b.w > FAR  && -c.w > FAR)  return;
 	if (-a.w < NEAR && -b.w < NEAR && -c.w < NEAR) return;
 	if (a.x < 0 && b.x < 0 && c.x < 0) return;
@@ -236,83 +320,8 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 	int is_b_out = b.x > WIDTH || b.y > HEIGHT || b.x < 0 || b.y < 0 || -b.w > FAR || -b.w < NEAR;
 	int is_c_out = c.x > WIDTH || c.y > HEIGHT || c.x < 0 || c.y < 0 || -c.w > FAR || -c.w < NEAR;
 
-	// pizdec
 	if (!(!is_a_out && !is_b_out && !is_c_out)) {
-		if (a_x_test_wi) {
-			if (b_x_test_wi) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, WIDTH); return;}
-			if (c_x_test_wi) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, WIDTH); return;}
-			slice_x_out(c, a, b, cc, ca, cb, pix, depth, WIDTH);
-			return;
-		}
-		if (b_x_test_wi) {
-			if (a_x_test_wi) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, WIDTH); return;}
-			if (c_x_test_wi) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, WIDTH); return;}
-			slice_x_out(a, b, c, ca, cb, cc, pix, depth, WIDTH);
-			return;
-		}
-		if (c_x_test_wi) {
-			if (a_x_test_wi) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, WIDTH); return;}
-			if (b_x_test_wi) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, WIDTH); return;}
-			slice_x_out(b, c, a, cb, cc, ca, pix, depth, WIDTH);
-			return;
-		}
-
-		if (a_x_test_ze) {
-			if (b_x_test_ze) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return;}
-			if (c_x_test_ze) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return;}
-			slice_x_out(c, a, b, cc, ca, cb, pix, depth, 0);
-			return;
-		}
-		if (b_x_test_ze) {
-			if (a_x_test_ze) {slice_x_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return;}
-			if (c_x_test_ze) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return;}
-			slice_x_out(a, b, c, ca, cb, cc, pix, depth, 0);
-			return;
-		}
-		if (c_x_test_ze) {
-			if (a_x_test_ze) {slice_x_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return;}
-			if (b_x_test_ze) {slice_x_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return;}
-			slice_x_out(b, c, a, cb, cc, ca, pix, depth, 0);
-			return;
-		}
-
-		if (a_y_test_he) {
-			if (b_y_test_he) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, HEIGHT); return;}
-			if (c_y_test_he) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, HEIGHT); return;}
-			slice_y_out(c, a, b, cc, ca, cb, pix, depth, HEIGHT);
-			return;
-		}
-		if (b_y_test_he) {
-			if (a_y_test_he) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, HEIGHT); return;}
-			if (c_y_test_he) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, HEIGHT); return;}
-			slice_y_out(a, b, c, ca, cb, cc, pix, depth, HEIGHT);
-			return;
-		}
-		if (c_y_test_he) {
-			if (a_y_test_he) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, HEIGHT); return;}
-			if (b_y_test_he) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, HEIGHT); return;}
-			slice_y_out(b, c, a, cb, cc, ca, pix, depth, HEIGHT);
-			return;
-		}
-
-		if (a_y_test_ze) {
-			if (b_y_test_ze) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return;}
-			if (c_y_test_ze) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return;}
-			slice_y_out(c, a, b, cc, ca, cb, pix, depth, 0);
-			return;
-		}
-		if (b_y_test_ze) {
-			if (a_y_test_ze) {slice_y_out_single(b, c, a, cb, cc, ca, pix, depth, 0); return;}
-			if (c_y_test_ze) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return;}
-			slice_y_out(a, b, c, ca, cb, cc, pix, depth, 0);
-			return;
-		}
-		if (c_y_test_ze) {
-			if (a_y_test_ze) {slice_y_out_single(a, b, c, ca, cb, cc, pix, depth, 0); return;}
-			if (b_y_test_ze) {slice_y_out_single(c, a, b, cc, ca, cb, pix, depth, 0); return;}
-			slice_y_out(b, c, a, cb, cc, ca, pix, depth, 0);
-			return;
-		}
+		if (hard_edge_test(a, b, c, ca, cb, cc, pix, depth) == 0) return;
 	}
 	int minx = floor(min3(a.x, b.x, c.x));
 	int maxx = floor(max3(a.x, b.x, c.x));
@@ -321,7 +330,7 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 	dynamic_vec4 minmax_x[s];
 	dynamic_vec4 minmax_x_color[s];
 	dynamic_float minmax_x_depth[s];
-	for (int i = 0; i < s; i++) {
+	for (size_t i = 0; i < s; i++) {
 		minmax_x[i] = malloc_vec4(0);
 		minmax_x_color[i] = malloc_vec4(0);
 		minmax_x_depth[i] = malloc_float(0);
@@ -354,3 +363,141 @@ void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t
 	dealloc_vec4(&lbc);
 	dealloc_vec4(&lca);
 }
+
+// BARI BACKEND
+#else
+vec4 ga, gb, gc;
+vec4 gca, gcb, gcc;
+
+void draw_edge_line(vec4 a, vec4 b, dynamic_vec4 mmx[], int minx, dynamic_uint8_t* pix, dynamic_float* depth, int w, int h) {
+	int x1, x2, y1, y2;
+	x1 = floor(a.x);
+	x2 = floor(b.x);
+	y1 = floor(a.y);
+	y2 = floor(b.y);
+
+	int dx = abs(x1 - x2);
+	int dy = abs(y1 - y2);
+	int sx = (x1 < x2 ? 1 : -1);
+	int sy = (y1 < y2 ? 1 : -1);
+	int er = dx - dy;
+
+	while (1) {
+		vec4 np = nvec4(x1, y1, 0.0f, 1.0f);
+		vec4 bari = baricentric_coords(ga, gb, gc, np);
+		put_vec4(&mmx[x1 - minx], np);
+			
+		float dp = bari_blend_float(-ga.w, -gb.w, -gc.w, bari);
+
+		float curdp = get_depth_pixel(depth, x1, y1, w, h);
+		if (curdp < NEAR) curdp = FAR;
+		
+		if (dp < curdp && dp > NEAR && dp < FAR) {
+			vec4 col = bari_blend(gca, gcb, gcc, bari);
+			
+			set_pixel(pix, x1, y1, w, h, floor(col.x * 255), floor(col.y * 255), floor(col.z * 255));
+			set_depth_pixel(depth, x1, y1, w, h, dp);
+		}
+		
+		if (x1 == x2 && y1 == y2) return;
+		
+		int e2 = 2 * er;
+		if (e2 > -dy) {
+			er -= dy;
+			x1 += sx;
+		}
+		if (e2 < dx) {
+			er += dx;
+			y1 += sy;
+		}
+	}
+}
+
+inline void draw_direct_line(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_vec4* mmx, int w, int h, int minidx, int sminidx, int j, int len) {
+	int curx = mmx->arr[minidx].x;
+	int cury = mmx->arr[minidx].y + j + 1;
+	vec4 bari = baricentric_coords(ga, gb, gc, nvec4(curx, cury, 0.0f, 1.0f));
+		
+	float dp = bari_blend_float(-ga.w, -gb.w, -gc.w, bari);
+
+	float curdp = get_depth_pixel(depth, curx, cury, w, h);
+	if (curdp < NEAR) curdp = FAR;
+	
+	if (dp < curdp && dp > NEAR && dp < FAR) {
+		vec4 col = bari_blend(gca, gcb, gcc, bari);
+		
+		set_pixel(pix, curx, cury, w, h, floor(col.x * 255), floor(col.y * 255), floor(col.z * 255));
+		set_depth_pixel(depth, curx, cury, w, h, dp);
+	}
+}
+
+inline void fill_trg_inside(dynamic_uint8_t* pix, dynamic_float* depth, dynamic_vec4* mmx, int w, int h) {
+	int minidx = 0;
+	int sminidx = 0;
+	int min = INT_MAX;
+	int smin = INT_MAX;
+	for (size_t j = 0; j < mmx->size - 1; j++) {
+		if (abs(mmx->arr[j].y - mmx->arr[j + 1].y) > 1) {
+			smin = mmx->arr[j].y;
+			min = mmx->arr[j + 1].y;
+			minidx = j+1;
+			sminidx = j;
+			break;
+		}
+	}
+	if (min == INT_MAX || smin == INT_MAX) return;
+	if (smin > min) {
+		int len = smin - min;
+		if (len == 1) return;
+		for (long j = 0; j < len - 1; j++) {
+			draw_direct_line(pix, depth, mmx, w, h, minidx, sminidx, j, len);
+		}
+	}
+	else {
+		int len = min - smin;
+		if (len == 1) return;
+		for (long j = 0; j < len - 1; j++) {
+			draw_direct_line(pix, depth, mmx, w, h, sminidx, minidx, j, len);
+		}
+	}
+}
+
+void draw_trg(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynamic_uint8_t pix, dynamic_float depth) {
+	if (-a.w > FAR  && -b.w > FAR  && -c.w > FAR)  return;
+	if (-a.w < NEAR && -b.w < NEAR && -c.w < NEAR) return;
+	if (a.x < 0 && b.x < 0 && c.x < 0) return;
+	if (a.x > WIDTH && b.x > WIDTH && c.x > WIDTH) return;
+	if (a.y < 0 && b.y < 0 && c.y < 0) return;
+	if (a.y > HEIGHT && b.y > HEIGHT && c.y > HEIGHT) return;
+
+	int is_a_out = a.x > WIDTH || a.y > HEIGHT || a.x < 0 || a.y < 0 || -a.w > FAR || -a.w < NEAR;
+	int is_b_out = b.x > WIDTH || b.y > HEIGHT || b.x < 0 || b.y < 0 || -b.w > FAR || -b.w < NEAR;
+	int is_c_out = c.x > WIDTH || c.y > HEIGHT || c.x < 0 || c.y < 0 || -c.w > FAR || -c.w < NEAR;
+
+	// pizdec
+	if (!(!is_a_out && !is_b_out && !is_c_out)) {
+		if (hard_edge_test(a, b, c, ca, cb, cc, pix, depth) == 0) return;
+	}
+	
+	int minx = floor(min3(a.x, b.x, c.x));
+	int maxx = floor(max3(a.x, b.x, c.x));
+	size_t s = maxx - minx + 1;
+	if (s > WIDTH + HEIGHT) return;
+
+	dynamic_vec4 minmax_x[s];
+	for (int i = 0; i < s; i++) {
+		minmax_x[i] = malloc_vec4(0);
+	}
+	
+	ga = a;gb = b;gc = c;
+	gca = ca;gcb = cb;gcc = cc;
+	draw_edge_line(a, b, minmax_x, minx, &pix, &depth, WIDTH, HEIGHT);
+	draw_edge_line(b, c, minmax_x, minx, &pix, &depth, WIDTH, HEIGHT);
+	draw_edge_line(c, a, minmax_x, minx, &pix, &depth, WIDTH, HEIGHT);
+	
+	for (size_t i = 0; i < s; i++) {
+		bari_fill_trg_inside(&pix, &depth, &minmax_x[i], WIDTH, HEIGHT);
+		dealloc_vec4(&minmax_x[i]);
+	}
+}
+#endif

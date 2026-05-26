@@ -39,7 +39,7 @@ void arrput_##TYPE(dynamic_##TYPE* d, TYPE* var, int vsize) {\
 	memcpy((d->arr + d->size), var, vsize * sizeof(TYPE));\
 	d->size += vsize;\
 }\
-void posput_##TYPE(dynamic_##TYPE* d, TYPE var, int pos) {\
+void posput_##TYPE(dynamic_##TYPE* d, TYPE var, size_t pos) {\
 	d->arr = realloc(d->arr, sizeof(TYPE) * ++d->size);\
 	for (size_t i = d->size; pos < i; i--) {\
 		d->arr[i] = d->arr[i - 1];\
