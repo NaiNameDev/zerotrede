@@ -5,12 +5,12 @@
 #include <limits.h>
 
 #include <GLFW/glfw3.h>
-//#define STB_IMAGE_IMPLEMENTATION
-//#include <stb/stb_image.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
 
 #define WIDTH 1280.0f
 #define HEIGHT 720.0f
-#define NEAR 0.1f
+#define NEAR 0.5f
 #define FAR 100.0f
 #define FOV 60.0f
 
@@ -29,7 +29,7 @@ DEFINE_DYNAMYC_TYPE(uint8_t);
 // rasterizer_bari.c sometimes works better but its not common thing
 #include "rasterizer.c"
 #include "mesh.c"
-//#include "image_loader.c"
+#include "image_loader.c"
 
 int cursor_x = WIDTH/2;
 int cursor_y = HEIGHT/2;
@@ -48,6 +48,7 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyWorld", NULL, NULL);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	stbi_set_flip_vertically_on_load(true);
 	if (window == NULL) {
 		glfwTerminate();
 		return -1;
@@ -70,7 +71,7 @@ int main() {
 	teto.position.y = -2.5f;
 	teto.scale = nvec4(0.05f, 0.05f, 0.05f, 1.0f);
 	
-	//image test_img = load_image("./test_img.png");
+	image test_img = load_image("./test_img.png");
 
 	double lstt = glfwGetTime();
 	double max_fps = 0.0f;
@@ -108,8 +109,16 @@ int main() {
 		
 
 		//teto.rotation.y += delta;
-		draw(teto, mc, proj, to_screen, pix, depth);
+		//draw(teto, mc, proj, to_screen, pix, depth);
 		//draw(cube, mc, proj, to_screen, pix, depth);
+		for (int i = 0; i < test_img.width; i++) {
+			for (int j = 0; j < test_img.height; j++) {
+				set_pixel(&pix, i, j, WIDTH, HEIGHT,
+						  test_img.image[4 * (j * test_img.width + i)],
+						  test_img.image[4 * (j * test_img.width + i) + 1],
+						  test_img.image[4 * (j * test_img.width + i) + 2]);
+			}
+		}
 
 
 		//draw zone end

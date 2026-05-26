@@ -143,8 +143,10 @@ inline void slice_x_out_single(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc
 	vec4 tmp_2 = nvec4(x, a.y + ((x - a.x) * (b.y - a.y) / (b.x - a.x)), 0.0f, 1.0f);
 	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
 	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
-	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
-	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	tmp_1.w = bari_blend_float(a.w, b.w, c.w, b1);
+	tmp_2.w = bari_blend_float(a.w, b.w, c.w, b2);
+	//tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
+	//tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
 #if DBG_CULLING_MODE == 0
 	draw_trg(b, tmp_1, tmp_2, cb, bari_blend(ca, cb, cc, b1), bari_blend(ca, cb, cc, b2), pix, depth);
 #else
@@ -156,8 +158,8 @@ inline void slice_y_out_single(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc
 	vec4 tmp_2 = nvec4(a.x + ((b.x - a.x) / (b.y - a.y))*(y - a.y), y, 0.0f, b.w);
 	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
 	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
-	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
-	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	tmp_1.w = bari_blend_float(a.w, b.w, c.w, b1);
+	tmp_2.w = bari_blend_float(a.w, b.w, c.w, b2);
 #if DBG_CULLING_MODE == 0
 	draw_trg(b, tmp_1, tmp_2, cb, bari_blend(ca, cb, cc, b1), bari_blend(ca, cb, cc, b2), pix, depth);
 #else
@@ -169,8 +171,8 @@ inline void slice_x_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynam
 	vec4 tmp_2 = nvec4(x, a.y + ((x - a.x) * (b.y - a.y) / (b.x - a.x)), 0.0f, 1.0f);
 	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
 	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
-	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
-	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	tmp_1.w = bari_blend_float(a.w, b.w, c.w, b1);
+	tmp_2.w = bari_blend_float(a.w, b.w, c.w, b2);
 #if DBG_CULLING_MODE == 0
 	draw_trg(a, tmp_1, c, ca, bari_blend(ca, cb, cc, b1), cc, pix, depth);
 	draw_trg(a, tmp_2, tmp_1, ca, bari_blend(ca, cb, cc, b2), bari_blend(ca, cb, cc, b1), pix, depth);
@@ -184,8 +186,8 @@ inline void slice_y_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynam
 	vec4 tmp_2 = nvec4(a.x + ((b.x - a.x) / (b.y - a.y))*(y - a.y), y, 0.0f, b.w);
 	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
 	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
-	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
-	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	tmp_1.w = bari_blend_float(a.w, b.w, c.w, b1);
+	tmp_2.w = bari_blend_float(a.w, b.w, c.w, b2);
 #if DBG_CULLING_MODE == 0
 	draw_trg(a, tmp_1, c, ca, bari_blend(ca, cb, cc, b1), cc, pix, depth);
 	draw_trg(a, tmp_2, tmp_1, ca, bari_blend(ca, cb, cc, b2), bari_blend(ca, cb, cc, b1), pix, depth);
@@ -199,8 +201,8 @@ inline void slice_w_out(vec4 a, vec4 b, vec4 c, vec4 ca, vec4 cb, vec4 cc, dynam
 	vec4 tmp_2 = nvec4(a.y + ((w - a.w) * (b.y - a.y) / (b.w - a.w)), a.x + ((b.x - a.x) / (b.w - a.w))*(w - a.w), 0.0f, b.w);
 	vec4 b1 = baricentric_coords(a, b, c, tmp_1);
 	vec4 b2 = baricentric_coords(a, b, c, tmp_2);
-	tmp_1.w = a.w * b1.x + b.w * b1.y + c.w * b1.z;
-	tmp_2.w = a.w * b2.x + b.w * b2.y + c.w * b2.z;
+	tmp_1.w = bari_blend_float(a.w, b.w, c.w, b1);
+	tmp_2.w = bari_blend_float(a.w, b.w, c.w, b2);
 	
 #if DBG_CULLING_MODE == 0
 	draw_trg(a, tmp_1, c, ca, bari_blend(ca, cb, cc, b1), cc, pix, depth);
