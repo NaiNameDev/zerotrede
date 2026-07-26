@@ -10,7 +10,7 @@
 
 #define WIDTH 1280.0f
 #define HEIGHT 720.0f
-#define NEAR 0.5f
+#define NEAR 0.1f
 #define FAR 100.0f
 #define FOV 60.0f
 

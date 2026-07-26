@@ -1,14 +1,3 @@
-typedef struct {
-	vec3 a;
-	vec3 b;
-	vec3 c;
-	vec4 ca;
-	vec4 cb;
-	vec4 cc;
-	vec2 ua;
-	vec2 ub;
-	vec2 uc;
-} vertice_t;
 inline void set_pixel(dynamic_uint8_t* pix, int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b) {
 	if (x >= 0 && y >= 0 && x < w && y < h) {
 		pix->arr[4 * (y * w + x)] = r;

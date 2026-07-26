@@ -36,8 +36,7 @@ inline float clampf(float n, float min, float max) {
 	return n > min ? (n < max ? n : max) : min;
 }
 inline vec4 w_transformation(vec4 v) {
-	float w = clampf(v.w, -FAR, -NEAR/2);
-	return (vec4){v.x / w, v.y / w, w, w};
+	return (vec4){v.x / -fabsf(v.w), v.y / -fabsf(v.w), v.w, v.w};
 }
 
 inline vec3 nvec3(float x, float y, float z) {
@@ -87,10 +86,10 @@ inline vec3 abs3(vec3 v) {
 	return nvec3(fabsf(v.x), fabsf(v.y), fabsf(v.z));
 }
 inline void pvec3(vec3 v) {
-	printf("(%f, %f, %f, %f)\n",v.x,v.y,v.z);
+	printf("(%f, %f, %f)\n",v.x,v.y,v.z);
 }
 inline void pvec3nn(vec3 v) {
-	printf("(%f, %f, %f, %f)",v.x,v.y,v.z);
+	printf("(%f, %f, %f)",v.x,v.y,v.z);
 }
 inline float max3(float x, float y, float z) {
 	return x > y ? (x > z ? x : z) : (y > z ? y : z);
